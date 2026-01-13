@@ -3,7 +3,7 @@ package com.essence.essencebackend.autentication.register.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
-public record UserRequestDTO(
+public record RegisterRequestDTO(
 
         @NotBlank(message = "el username no puede estar vacío")
         String username,

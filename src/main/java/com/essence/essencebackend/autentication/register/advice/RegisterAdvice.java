@@ -2,6 +2,7 @@ package com.essence.essencebackend.autentication.register.advice;
 
 import com.essence.essencebackend.autentication.register.controller.RegisterController;
 import com.essence.essencebackend.autentication.register.exception.DuplicateEmailException;
+import com.essence.essencebackend.autentication.register.exception.DuplicateUsernameException;
 import com.essence.essencebackend.autentication.register.exception.RegisterFailedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
@@ -24,6 +25,14 @@ public class RegisterAdvice {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         pd.setTitle("No se pudo crear el usuario");
         pd.setDetail("Ocurrió un error inesperado. Intente nuevamente.");
+        return pd;
+    }
+
+    @ExceptionHandler(RegisterFailedException.class)
+    public ProblemDetail duplicateUsername(DuplicateUsernameException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
+        pd.setTitle("Nombre de usuario ya esta siendo usado");
+        pd.setDetail("El nombre de usuario esta siendo usado por otro, pruebe otro usuario");
         return pd;
     }
 }

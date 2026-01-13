@@ -1,4 +1,4 @@
-package com.essence.essencebackend.autentication.register.model;
+package com.essence.essencebackend.autentication.model;
 
 import jakarta.persistence.*;
 import lombok.*;

@@ -1,7 +1,5 @@
-package com.essence.essencebackend.security;
+package com.essence.essencebackend.security.jwt;
 
-
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
@@ -19,8 +17,8 @@ public class JwtLocalConfig {
 
     // obtiene la secretkey de jwt
     @Bean
-    SecretKey jwtSecretKey(@Value("${application.security.jwt.secret-key}") String secretB64) {
-        byte[] keyBytes = Base64.getDecoder().decode(secretB64);
+    SecretKey jwtSecretKey(JwtProperties properties) {
+        byte[] keyBytes = Base64.getDecoder().decode(properties.secretKey());
 
         // RFC 7518
         if (keyBytes.length < 32) {
@@ -43,4 +41,5 @@ public class JwtLocalConfig {
                 .macAlgorithm(MacAlgorithm.HS256) // HS256/384/512
                 .build();
     }
+
 }

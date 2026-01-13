@@ -1,8 +1,9 @@
 package com.essence.essencebackend.autentication.register.service;
 
-import com.essence.essencebackend.autentication.register.dto.UserRequestDTO;
-import com.essence.essencebackend.autentication.register.dto.UserResponseDTO;
+import com.essence.essencebackend.autentication.register.dto.RegisterRequestDTO;
+import com.essence.essencebackend.autentication.register.dto.RegisterResponseDTO;
 
 public interface RegisterService {
-    UserResponseDTO createUser(UserRequestDTO data);
+    boolean getAvailableUsername(String username);
+    RegisterResponseDTO createUser(RegisterRequestDTO data);
 }
