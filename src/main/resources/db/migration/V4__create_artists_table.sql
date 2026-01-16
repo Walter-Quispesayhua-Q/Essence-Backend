@@ -1,0 +1,4 @@
+CREATE TABLE IF NOT EXISTS artists (
+    artist_id BIGSERIAL PRIMARY KEY,
+    name TEXT NOT NULL
+);

@@ -28,7 +28,7 @@ public class RegisterAdvice {
         return pd;
     }
 
-    @ExceptionHandler(RegisterFailedException.class)
+    @ExceptionHandler(DuplicateUsernameException.class)
     public ProblemDetail duplicateUsername(DuplicateUsernameException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         pd.setTitle("Nombre de usuario ya esta siendo usado");
