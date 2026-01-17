@@ -1,8 +1,15 @@
 package com.essence.essencebackend.autentication.shared.model;
 
+import com.essence.essencebackend.library.history.model.PlayHistory;
+import com.essence.essencebackend.library.like.model.AlbumLike;
+import com.essence.essencebackend.library.like.model.ArtistLike;
+import com.essence.essencebackend.library.like.model.PlaylistLike;
+import com.essence.essencebackend.library.like.model.SongLike;
+import com.essence.essencebackend.library.playlist.model.Playlist;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.Instant;
+import java.util.List;
 
 @Getter
 @Setter
@@ -28,6 +35,24 @@ public class User {
 
     @Column(name = "enabled")
     private boolean enabled = true;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<SongLike> songLikes;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<AlbumLike> albumLikes;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<ArtistLike> artistLikes;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<PlaylistLike> playlistLikes;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<Playlist> playlists;
+
+    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
+    private List<PlayHistory> playHistory;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

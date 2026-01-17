@@ -1,4 +1,4 @@
-package com.essence.essencebackend.music.song.model.embedded;
+package com.essence.essencebackend.library.playlist.model.embedded;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Embeddable;

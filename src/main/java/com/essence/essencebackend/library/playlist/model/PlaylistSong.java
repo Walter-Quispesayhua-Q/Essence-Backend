@@ -1,6 +1,6 @@
 package com.essence.essencebackend.library.playlist.model;
 
-import com.essence.essencebackend.music.song.model.embedded.PlaylistSongId;
+import com.essence.essencebackend.library.playlist.model.embedded.PlaylistSongId;
 import com.essence.essencebackend.music.song.model.Song;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
