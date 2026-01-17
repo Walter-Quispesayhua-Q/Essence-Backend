@@ -1,8 +1,8 @@
 package com.essence.essencebackend.security;
 
 import com.essence.essencebackend.autentication.login.exception.UserNotFound;
-import com.essence.essencebackend.autentication.model.User;
-import com.essence.essencebackend.autentication.repository.UserRepository;
+import com.essence.essencebackend.autentication.shared.model.User;
+import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
