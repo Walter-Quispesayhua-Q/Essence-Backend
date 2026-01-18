@@ -6,11 +6,10 @@ public record PlaylistResponseDTO(
         Long id,
         String title,
         String description,
-        String coverKey,
+        String imageKey,
         Boolean isPublic,
         LocalDate createdAt,
         LocalDate updatedAt,
-
         Integer totalSongs,
         Integer totalLikes
 ) {

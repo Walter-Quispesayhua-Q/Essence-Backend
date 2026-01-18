@@ -34,8 +34,8 @@ public class Song {
     @Column(name = "hls_master_key", nullable = false)
     private String hlsMasterKey;
 
-    @Column(name = "cover_key")
-    private String coverKey;
+    @Column(name = "image_key")
+    private String imageKey;
 
     @Column(name = "isrc", unique = true)
     @Size(max = 12)
@@ -43,7 +43,7 @@ public class Song {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id")
-    private Album albumId;
+    private Album album;
 
     @Column(name = "status", nullable = false)
     @Size(max = 20)
@@ -52,7 +52,7 @@ public class Song {
     @Column(name = "total_plays")
     private Long totalPlays = 0L;
 
-    @OneToMany(mappedBy = "song", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "song", fetch = FetchType.LAZY)
     private List<SongArtist> songArtists;
 
     @Column(name = "created_at")

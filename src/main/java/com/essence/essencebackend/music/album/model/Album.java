@@ -27,8 +27,8 @@ public class Album {
     @Column(name = "description")
     private String description;
 
-    @Column(name = "cover_key")
-    private String coverKey;
+    @Column(name = "image_key")
+    private String imageKey;
 
     @Column(name = "release_date")
     private LocalDate releaseDate;

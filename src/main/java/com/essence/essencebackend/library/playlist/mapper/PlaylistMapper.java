@@ -15,7 +15,7 @@ import java.time.ZoneId;
 public interface PlaylistMapper {
 
     @Mapping(target = "playlistId", ignore = true)
-    @Mapping(target = "coverKey", ignore = true)
+    @Mapping(target = "imageKey", ignore = true)
     @Mapping(target = "user", ignore = true)
     @Mapping(target = "playlistSongs", ignore = true)
     @Mapping(target = "playlistLikes", ignore = true)
