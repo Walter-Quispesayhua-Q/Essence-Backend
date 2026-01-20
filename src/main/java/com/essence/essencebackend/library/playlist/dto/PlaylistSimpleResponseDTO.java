@@ -11,6 +11,6 @@ public record PlaylistSimpleResponseDTO(
         Boolean isPublic,
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Integer totalLikes
+        Long totalLikes
 ) {
 }

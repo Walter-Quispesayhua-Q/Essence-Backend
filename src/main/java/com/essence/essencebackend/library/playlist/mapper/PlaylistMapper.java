@@ -37,17 +37,4 @@ public interface PlaylistMapper {
     default LocalDate instantToLocalDate(Instant date) {
         return LocalDate.ofInstant(date, ZoneId.systemDefault());
     }
-
-    default PlaylistSimpleResponseDTO responseForPrivate(Playlist playlist) {
-        PlaylistSimpleResponseDTO dto = toDtoSimple(playlist);
-        if (!playlist.getIsPublic()) {
-            return new PlaylistSimpleResponseDTO(
-                    dto.id(),
-                    dto.title(),
-                    dto.isPublic(),
-                    null
-            );
-        }
-        return dto;
-    }
 }

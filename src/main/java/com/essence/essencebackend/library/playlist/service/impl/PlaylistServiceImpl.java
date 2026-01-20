@@ -38,8 +38,6 @@ public class PlaylistServiceImpl implements PlaylistService {
 
         Playlist playlist = playlistMapper.toEntity(data);
         playlistRepository.save(playlist);
-        PlaylistSimpleResponseDTO playlistSimpleResponseDTO = playlistMapper.toDtoSimple(playlist);
-
 
         return PlaylistSimpleResponseDTO.builder()
                 .id(playlist.getPlaylistId())
