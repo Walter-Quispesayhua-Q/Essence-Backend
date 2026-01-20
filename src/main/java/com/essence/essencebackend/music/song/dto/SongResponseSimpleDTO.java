@@ -6,6 +6,7 @@ public record SongResponseSimpleDTO(
         Integer durationMs,
         String hlsMasterKey,
         String imageKey,
+        String songType,
         Long totalPlays
 ) {
 }

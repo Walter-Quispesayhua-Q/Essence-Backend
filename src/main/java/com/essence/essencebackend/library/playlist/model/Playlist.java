@@ -25,7 +25,7 @@ public class Playlist {
     @Column(name = "playlist_id")
     private Long playlistId;
 
-    @Column(name = "title", nullable = false)
+    @Column(name = "title", nullable = false, length = 255)
     @Size(max = 255)
     private String title;
 
@@ -37,6 +37,9 @@ public class Playlist {
 
     @Column(name = "is_public")
     private Boolean isPublic = false;
+
+    @Column(name = "total_likes")
+    private Long totalLikes = 0L;
 
     @Column(name = "created_at")
     private Instant createdAt;

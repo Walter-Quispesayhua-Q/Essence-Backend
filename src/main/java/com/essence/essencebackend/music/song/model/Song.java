@@ -37,15 +37,15 @@ public class Song {
     @Column(name = "image_key")
     private String imageKey;
 
-    @Column(name = "isrc", unique = true)
-    @Size(max = 12)
-    private char isrc;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "song_type", length = 20)
+    private SongType songType = SongType.ORIGINAL;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id")
     private Album album;
 
-    @Column(name = "status", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
     @Size(max = 20)
     private String status = "PROCESSING";
 

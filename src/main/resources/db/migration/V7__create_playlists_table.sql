@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS playlists (
     description TEXT,
     image_key VARCHAR(500),
     is_public BOOLEAN DEFAULT false,
+    total_likes BIGINT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

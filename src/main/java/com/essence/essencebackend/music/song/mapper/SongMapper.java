@@ -14,6 +14,7 @@ public interface SongMapper {
     @Mapping(target = "imageKey", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "totalPlays", ignore = true)
+    @Mapping(target = "song_type", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     Song toEntity(SongRequestDTO toDto);

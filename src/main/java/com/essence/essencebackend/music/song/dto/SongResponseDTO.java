@@ -14,7 +14,7 @@ public record SongResponseDTO(
         LocalDate releaseDate,
         String hlsMasterKey,
         String imageKey,
-        char isrc,
+        String songType,
         Long totalPlays,
 
         List<ArtistResponseSimpleDTO> artists,

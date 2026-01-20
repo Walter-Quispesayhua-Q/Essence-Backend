@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS songs (
     release_date DATE,
     hls_master_key TEXT NOT NULL,
     image_key TEXT,
-    isrc CHAR(12) UNIQUE,
+    song_type VARCHAR(20),
     album_id BIGINT REFERENCES albums(album_id),
     status VARCHAR(20) NOT NULL DEFAULT 'PROCESSING',
     total_plays BIGINT DEFAULT 0,

@@ -2,6 +2,7 @@ package com.essence.essencebackend.library.playlist.mapper;
 
 import com.essence.essencebackend.library.playlist.dto.PlaylistRequestDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistResponseDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistSimpleResponseDTO;
 import com.essence.essencebackend.library.playlist.model.Playlist;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -30,8 +31,23 @@ public interface PlaylistMapper {
     @Mapping(target = "totalLikes", ignore = true)
     PlaylistResponseDTO toDto(Playlist toEntity);
 
+    PlaylistSimpleResponseDTO toDtoSimple(Playlist toEntity);
+
     @Named("instantToLocalDate")
     default LocalDate instantToLocalDate(Instant date) {
         return LocalDate.ofInstant(date, ZoneId.systemDefault());
+    }
+
+    default PlaylistSimpleResponseDTO responseForPrivate(Playlist playlist) {
+        PlaylistSimpleResponseDTO dto = toDtoSimple(playlist);
+        if (!playlist.getIsPublic()) {
+            return new PlaylistSimpleResponseDTO(
+                    dto.id(),
+                    dto.title(),
+                    dto.isPublic(),
+                    null
+            );
+        }
+        return dto;
     }
 }

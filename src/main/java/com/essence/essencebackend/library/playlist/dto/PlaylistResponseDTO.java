@@ -1,5 +1,7 @@
 package com.essence.essencebackend.library.playlist.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.time.LocalDate;
 
 public record PlaylistResponseDTO(
@@ -11,6 +13,8 @@ public record PlaylistResponseDTO(
         LocalDate createdAt,
         LocalDate updatedAt,
         Integer totalSongs,
+
+        @JsonInclude(JsonInclude.Include.NON_NULL)
         Integer totalLikes
 ) {
 }
