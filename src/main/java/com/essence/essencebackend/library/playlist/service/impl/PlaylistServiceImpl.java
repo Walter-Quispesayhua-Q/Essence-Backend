@@ -1,8 +1,12 @@
 package com.essence.essencebackend.library.playlist.service.impl;
 
+import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.library.playlist.dto.PlaylistRequestDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistSimpleResponseDTO;
+import com.essence.essencebackend.library.playlist.exception.DuplicatePlaylistException;
+import com.essence.essencebackend.library.playlist.exception.PlaylistNotFoundException;
 import com.essence.essencebackend.library.playlist.exception.TitleEmptyException;
 import com.essence.essencebackend.library.playlist.exception.UserNotFoundForUsernameException;
 import com.essence.essencebackend.library.playlist.mapper.PlaylistMapper;
@@ -28,22 +32,60 @@ public class PlaylistServiceImpl implements PlaylistService {
     public PlaylistSimpleResponseDTO createPlaylist(PlaylistRequestDTO data, String username) {
         log.info("Iniciando la creación de una nueva playlist con los datos:{} ", data);
 
-        userRepository.findByUsername(username).orElseThrow(
+        User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new UserNotFoundForUsernameException(username)
         );
 
-        if (data.title().isBlank() && data.title().isEmpty()) {
+        if (data.title().isBlank()) {
             throw new TitleEmptyException();
         }
 
+        if (playlistRepository.existsByTitleAndUser(data.title(), user)) {
+            throw new DuplicatePlaylistException(data.title());
+        }
+
         Playlist playlist = playlistMapper.toEntity(data);
+        playlist.setUser(user);
         playlistRepository.save(playlist);
 
-        return PlaylistSimpleResponseDTO.builder()
-                .id(playlist.getPlaylistId())
-                .title(playlist.getTitle())
-                .isPublic(playlist.getIsPublic())
-                .totalLikes(playlist.getIsPublic() ? playlist.getTotalLikes() : null)
-                .build();
+        return playlistMapper.toDtoSimple(playlist);
+    }
+
+    @Override
+    @Transactional
+    public PlaylistSimpleResponseDTO updatePlaylist(Long id, PlaylistRequestDTO dataUpdate, String username) {
+        log.info("Actualizando Playlist con el id: {} , por el usuario: {}", id, username);
+
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UserNotFoundForUsernameException(username)
+        );
+
+        if (dataUpdate.title() != null && dataUpdate.title().isBlank()) {
+            throw new TitleEmptyException();
+        }
+
+        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(id, user).orElseThrow(
+                () -> new PlaylistNotFoundException(id)
+        );
+
+        Playlist playlistUpdate = playlistMapper.toUpdateEntity(dataUpdate, playlist);
+
+        playlistRepository.save(playlistUpdate);
+        return playlistMapper.toDtoSimple(playlistUpdate);
+    }
+
+    @Override
+    public PlaylistResponseDTO getPlaylist(Long id, String username) {
+        log.info("Obteniendo playlist por el id: {} , para el usuario: {}", id, username);
+
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UserNotFoundForUsernameException(username)
+        );
+
+        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(id, user).orElseThrow(
+                () -> new PlaylistNotFoundException(id)
+        );
+
+        return playlistMapper.toDto(playlist);
     }
 }

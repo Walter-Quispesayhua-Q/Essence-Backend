@@ -4,9 +4,7 @@ import com.essence.essencebackend.library.playlist.dto.PlaylistRequestDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistSimpleResponseDTO;
 import com.essence.essencebackend.library.playlist.model.Playlist;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Named;
+import org.mapstruct.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -24,17 +22,30 @@ public interface PlaylistMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Playlist toEntity(PlaylistRequestDTO toDto);
 
+    @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+    Playlist toUpdateEntity(PlaylistRequestDTO toUpdate, @MappingTarget Playlist playlist);
+
     @Mapping(source = "playlistId", target = "id")
     @Mapping(source = "createdAt", target = "createdAt", qualifiedByName = "instantToLocalDate")
     @Mapping(source = "updatedAt", target = "updatedAt", qualifiedByName = "instantToLocalDate")
-    @Mapping(target = "totalSongs", ignore = true)
-    @Mapping(target = "totalLikes", ignore = true)
+    @Mapping(source = "totalLikes", target = "totalLikes", qualifiedByName = "mapTotalLikes")
     PlaylistResponseDTO toDto(Playlist toEntity);
 
+
+    @Mapping(source = "totalLikes", target = "totalLikes", qualifiedByName = "mapTotalLikes")
     PlaylistSimpleResponseDTO toDtoSimple(Playlist toEntity);
+
 
     @Named("instantToLocalDate")
     default LocalDate instantToLocalDate(Instant date) {
         return LocalDate.ofInstant(date, ZoneId.systemDefault());
+    }
+
+    @Named("mapTotalLikes")
+    default Long mapTotalLikesIfPublic(Playlist playlist) {
+        if (!playlist.getIsPublic()) {
+            return null;
+        }
+        return playlist.getTotalLikes();
     }
 }
