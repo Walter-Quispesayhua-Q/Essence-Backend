@@ -2,9 +2,12 @@ package com.essence.essencebackend.music.song.mapper;
 
 import com.essence.essencebackend.music.song.dto.SongRequestDTO;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
+import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import com.essence.essencebackend.music.song.model.Song;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+
+import java.util.List;
 
 @Mapper(componentModel = "spring")
 public interface SongMapper {
@@ -20,4 +23,6 @@ public interface SongMapper {
     Song toEntity(SongRequestDTO toDto);
 
     SongResponseDTO toDto(Song toEntity);
+
+    List<SongResponseSimpleDTO> toListDto(List<Song> toListEntity);
 }

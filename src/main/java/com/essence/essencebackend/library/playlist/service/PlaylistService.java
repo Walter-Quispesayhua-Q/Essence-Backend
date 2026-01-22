@@ -12,4 +12,8 @@ public interface PlaylistService {
 
     //get
     PlaylistResponseDTO getPlaylist(Long id, String username);
+    PlaylistSimpleResponseDTO getForUpdate(Long id, String username);
+
+    //delete
+    boolean deletePlaylist(Long id, String username);
 }
