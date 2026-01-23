@@ -1,12 +1,13 @@
 package com.essence.essencebackend.autentication.login.advice;
 
+import com.essence.essencebackend.autentication.login.controller.LoginController;
 import com.essence.essencebackend.autentication.login.exception.UserNotFound;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice()
+@RestControllerAdvice(assignableTypes = LoginController.class)
 public class LoginAdvice {
 
     @ExceptionHandler(UserNotFound.class)

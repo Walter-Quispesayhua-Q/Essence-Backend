@@ -15,5 +15,5 @@ public interface PlaylistService {
     PlaylistSimpleResponseDTO getForUpdate(Long id, String username);
 
     //delete
-    boolean deletePlaylist(Long id, String username);
+    void deletePlaylist(Long id, String username);
 }

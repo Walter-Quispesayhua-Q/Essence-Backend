@@ -102,7 +102,7 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     @Transactional
-    public boolean deletePlaylist(Long id, String username) {
+    public void deletePlaylist(Long id, String username) {
         log.info("Procediendo con la eliminación del playlist con la id: {} , por el usuario: {}", id, username);
 
         User user = userRepository.findByUsername(username).orElseThrow(
@@ -115,7 +115,6 @@ public class PlaylistServiceImpl implements PlaylistService {
 
         try {
             playlistRepository.delete(playlist);
-            return true;
         } catch (RuntimeException e) {
             throw new FailedToDeletePlaylistException(playlist.getPlaylistId());
         }
