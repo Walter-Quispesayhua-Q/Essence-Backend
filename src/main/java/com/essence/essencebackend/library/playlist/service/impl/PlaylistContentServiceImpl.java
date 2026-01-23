@@ -71,6 +71,30 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
     }
 
     @Override
+    public boolean deleteSongToPlaylist(Long songId, Long playlistId, String username) {
+
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UserNotFoundForUsernameException(username)
+        );
+
+        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(playlistId, user).orElseThrow(
+                () -> new PlaylistNotFoundException(playlistId)
+        );
+
+        Song song = songRepository.findById(songId).orElseThrow(
+                () -> new SongNotFoundException(songId)
+        );
+
+        PlaylistSongId playlistSongId = new PlaylistSongId(playlistId, songId);
+
+        if (playlistSongRepository.existsById(playlistSongId)) {
+            throw new SongAlreadyInPlaylistException(songId, playlistId);
+        }
+
+        return false;
+    }
+
+    @Override
     public List<SongResponseSimpleDTO> getSongForPlaylist(Long id, String username) {
         log.info("Obteniendo canciones para la playlist: {} , por el usuario: {}", id, username);
 
