@@ -46,9 +46,6 @@ public class PlayHistory {
     @Column(name = "device_type")
     private String deviceType;
 
-    @Column(name = "quality")
-    private String quality;
-
     @PrePersist
     public void onCreate() {
         this.playedAt = Instant.now();

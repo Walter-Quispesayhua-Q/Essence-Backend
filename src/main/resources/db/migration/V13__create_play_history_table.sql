@@ -7,6 +7,5 @@ CREATE TABLE IF NOT EXISTS play_history (
     completed BOOLEAN DEFAULT false,
     skipped BOOLEAN DEFAULT false,
     skip_position_ms INT,
-    device_type VARCHAR(50),
-    quality VARCHAR(20)
+    device_type VARCHAR(50)
 );
