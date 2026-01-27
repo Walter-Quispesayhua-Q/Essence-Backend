@@ -21,6 +21,9 @@ public class PlaybackSegment {
     @JoinColumn(name = "song_id", nullable = false)
     private Song song;
 
+    @Column(name = "segment_number")
+    private Integer segmentNumber;
+
     @Column(name = "segment_start_ms", nullable = false)
     private Integer segmentStartMs;
 
@@ -29,4 +32,10 @@ public class PlaybackSegment {
 
     @Column(name = "play_count")
     private Long playCount = 0L;
+
+    @Column(name = "complete_count")
+    private Long completeCount = 0L;
+
+    @Column(name = "skip_count")
+    private Long skipCount = 0L;
 }

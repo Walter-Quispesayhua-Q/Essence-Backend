@@ -1,6 +1,8 @@
 package com.essence.essencebackend.library.history.model;
 
 import com.essence.essencebackend.autentication.shared.model.User;
+import com.essence.essencebackend.library.playlist.model.Playlist;
+import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.song.model.Song;
 import jakarta.persistence.*;
 import lombok.*;
@@ -27,6 +29,14 @@ public class PlayHistory {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "song_id", nullable = false)
     private Song song;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "playlist_id")
+    private Playlist playlist;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "album_id")
+    private Album album;
 
     @Column(name = "played_at")
     private Instant playedAt;
