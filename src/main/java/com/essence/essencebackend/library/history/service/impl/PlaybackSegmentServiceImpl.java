@@ -4,11 +4,12 @@ import com.essence.essencebackend.library.history.model.PlaybackSegment;
 import com.essence.essencebackend.library.history.repository.PlaybackSegmentRepository;
 import com.essence.essencebackend.library.history.service.PlaybackSegmentService;
 import com.essence.essencebackend.music.song.model.Song;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @RequiredArgsConstructor
@@ -47,6 +48,7 @@ public class PlaybackSegmentServiceImpl implements PlaybackSegmentService {
     public void updateSegmentsCounts(Song song, int durationListenedMs, boolean skipped, Integer skipPositionMs) {
         List<PlaybackSegment> segments = playbackSegmentRepository.findBySongOrderBySegmentNumber((song));
 
+        List<PlaybackSegment> updatedSegments = new ArrayList<>();
         for (PlaybackSegment segment : segments) {
             // Si escuchó hasta este segmento
             if (durationListenedMs >= segment.getSegmentStartMs()) {
@@ -64,10 +66,11 @@ public class PlaybackSegmentServiceImpl implements PlaybackSegmentService {
                     segment.setSkipCount(segment.getSkipCount() + 1);
                 }
 
-                playbackSegmentRepository.save(segment);
+                updatedSegments.add(segment);
             } else {
                 break;
             }
         }
+        playbackSegmentRepository.saveAll(updatedSegments);
     }
 }
