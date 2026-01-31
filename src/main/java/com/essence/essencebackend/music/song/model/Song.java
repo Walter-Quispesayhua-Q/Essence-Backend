@@ -31,6 +31,7 @@ public class Song {
     @Column(name = "release_date")
     private LocalDate releaseDate;
 
+//    id of video
     @Column(name = "hls_master_key", nullable = false)
     private String hlsMasterKey;
 
@@ -49,6 +50,9 @@ public class Song {
     @Size(max = 20)
     private String status = "PROCESSING";
 
+    @Column(name = "total_streams")
+    private Long totalStreams = 0L;
+
     @Column(name = "total_plays")
     private Long totalPlays = 0L;
 
@@ -60,6 +64,12 @@ public class Song {
 
     @Column(name = "updated_at")
     private Instant updatedAt;
+
+    @Column(name = "last_synced_at")
+    private Instant lastSyncedAt;
+
+    @Column(name = "sync_version")
+    private Integer syncVersion = 1;
 
     @PrePersist
     public void onCreate() {

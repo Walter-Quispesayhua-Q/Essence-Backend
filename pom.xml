@@ -122,7 +122,21 @@
             <artifactId>mapstruct</artifactId>
             <version>${org.mapstruct.version}</version>
         </dependency>
+
+<!--        para obtener las url y metadata-->
+        <dependency>
+            <groupId>com.github.teamnewpipe</groupId>
+            <artifactId>NewPipeExtractor</artifactId>
+            <version>v0.25.1</version>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

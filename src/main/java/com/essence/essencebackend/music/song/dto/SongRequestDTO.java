@@ -14,7 +14,6 @@ public record SongRequestDTO(
         Integer durationMs,
 
         LocalDate releaseDate,
-        char isrc,
 
         List<Long> artistIds,
         Long albumId

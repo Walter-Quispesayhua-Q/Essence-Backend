@@ -1,5 +1,7 @@
 package com.essence.essencebackend.music.song.dto;
 
+import java.time.LocalDate;
+
 public record SongResponseSimpleDTO(
         Long id,
         String title,
@@ -7,6 +9,9 @@ public record SongResponseSimpleDTO(
         String hlsMasterKey,
         String imageKey,
         String songType,
-        Long totalPlays
+        Long totalPlays,
+        String artistName,
+        String albumName,
+        LocalDate releaseDate
 ) {
 }
