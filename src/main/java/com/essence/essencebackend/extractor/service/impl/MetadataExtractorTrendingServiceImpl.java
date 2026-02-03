@@ -71,6 +71,7 @@ public class MetadataExtractorTrendingServiceImpl implements MetadataExtractorTr
         return artistYoutubeMusic;
     }
 
+//  pone "v" a las url, para el control de versiones.
     private String extract(String url) {
         if (url.contains("v=")) {
             return url.split("v=")[1].split("&")[0];
