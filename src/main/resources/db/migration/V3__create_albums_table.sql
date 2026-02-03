@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS albums (
     title TEXT NOT NULL,
     description TEXT,
     image_key TEXT,
+    album_url TEXT,
     release_date DATE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

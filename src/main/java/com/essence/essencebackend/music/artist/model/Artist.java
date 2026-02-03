@@ -30,6 +30,9 @@ public class Artist {
     @Column(name = "image_key")
     private String imageKey;
 
+    @Column(name = "artist_url")
+    private String artistUrl;
+
     @Column(name = "country", length = 10)
     @Size(max = 10)
     private String country;

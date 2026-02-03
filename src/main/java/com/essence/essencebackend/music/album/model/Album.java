@@ -30,6 +30,9 @@ public class Album {
     @Column(name = "image_key")
     private String imageKey;
 
+    @Column(name = "album_url")
+    private String albumUrl;
+
     @Column(name = "release_date")
     private LocalDate releaseDate;
 
