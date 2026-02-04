@@ -71,10 +71,15 @@ public class MetadataExtractorTrendingServiceImpl implements MetadataExtractorTr
         return artistYoutubeMusic;
     }
 
-//  pone "v" a las url, para el control de versiones.
-    private String extract(String url) {
+    private String extractId(String url) {
         if (url.contains("v=")) {
             return url.split("v=")[1].split("&")[0];
+        }
+        if (url.contains("list=")) {
+            return url.split("list=")[1].split("&")[0];
+        }
+        if (url.contains("channel/")) {
+            return url.split("channel/")[1].split("[?/]")[0];
         }
         return url;
     }
@@ -84,7 +89,7 @@ public class MetadataExtractorTrendingServiceImpl implements MetadataExtractorTr
                 null,
                 item.getName(),
                 (int) (item.getDuration() * 1000),
-                extract(item.getUrl()),
+                extractId(item.getUrl()),
                 item.getThumbnails().isEmpty() ? null
                         : item.getThumbnails().get(0).getUrl(),
                 null,
@@ -104,7 +109,7 @@ public class MetadataExtractorTrendingServiceImpl implements MetadataExtractorTr
                 item.getName(),
                 item.getThumbnails().isEmpty() ? null
                         : item.getThumbnails().get(0).getUrl(),
-                extract(item.getUrl()),
+                extractId(item.getUrl()),
                 List.of(item.getUploaderName()),
                 null
         );
@@ -116,7 +121,7 @@ public class MetadataExtractorTrendingServiceImpl implements MetadataExtractorTr
                 item.getName(),
                 item.getThumbnails().isEmpty() ? null
                         : item.getThumbnails().get(0).getUrl(),
-                extract(item.getUrl())
+                extractId(item.getUrl())
         );
     }
 }

@@ -65,6 +65,9 @@ public class Song {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "streaming_url", length = 2000)
+    private String streamingUrl;
+
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 

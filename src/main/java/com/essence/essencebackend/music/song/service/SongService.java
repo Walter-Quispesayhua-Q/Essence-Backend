@@ -1,9 +1,8 @@
 package com.essence.essencebackend.music.song.service;
 
-import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
-
-import java.util.List;
+import com.essence.essencebackend.music.shared.dto.IdStreamingRequestDTO;
+import com.essence.essencebackend.music.song.dto.SongResponseDTO;
 
 public interface SongService {
-    List<SongResponseSimpleDTO> getTrendingSongs(String username);
+    SongResponseDTO getSongId(IdStreamingRequestDTO data, String username);
 }
