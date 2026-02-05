@@ -8,5 +8,6 @@ import java.util.Optional;
 
 public interface SongRepository extends JpaRepository<Song, Long> {
     List<Song> findTop20ByOrderByTotalStreamsDesc();
-    Optional<Song> findByExternalId(String id);
+
+    Optional<Song> findByHlsMasterKey(String hlsMasterKey);
 }
