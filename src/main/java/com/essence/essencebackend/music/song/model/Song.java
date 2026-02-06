@@ -56,7 +56,7 @@ public class Song {
     @Column(name = "total_plays")
     private Long totalPlays = 0L;
 
-    @OneToMany(mappedBy = "song", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "song", fetch = FetchType.LAZY, cascade = CascadeType.ALL)
     private List<SongArtist> songArtists;
 
     @Column(name = "created_at")

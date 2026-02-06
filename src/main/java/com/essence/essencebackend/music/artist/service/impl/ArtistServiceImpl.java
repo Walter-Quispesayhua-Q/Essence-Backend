@@ -28,8 +28,8 @@ public class ArtistServiceImpl implements ArtistService {
     public Set<Artist> getOrCreateArtistBySong(String artistUrl, String artistsNames) {
         log.info("Obteniendo artista por su url: {}", artistUrl);
 
-        Set<Artist> artistsExist = new HashSet<>();
-        Set<Artist> artistsForSave = new HashSet<>();
+        Set<Artist> artistsExist = new LinkedHashSet<>();
+        Set<Artist> artistsForSave = new LinkedHashSet<>();
 
         String artistaUrlId = urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST);
 
@@ -80,7 +80,7 @@ public class ArtistServiceImpl implements ArtistService {
 
         }
         artistRepository.saveAll(artistsForSave);
-        Set<Artist> artists = new HashSet<>(artistsExist);
+        Set<Artist> artists = new LinkedHashSet<>(artistsExist);
         artists.addAll(artistsForSave);
         return artists;
     }

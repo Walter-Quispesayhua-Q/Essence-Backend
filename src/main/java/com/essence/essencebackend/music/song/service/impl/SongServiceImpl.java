@@ -6,17 +6,17 @@ import com.essence.essencebackend.music.album.service.AlbumService;
 import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.artist.service.ArtistService;
 import com.essence.essencebackend.music.shared.dto.IdStreamingRequestDTO;
+import com.essence.essencebackend.music.shared.model.embedded.SongArtistId;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
-import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
 import com.essence.essencebackend.music.song.mapper.SongMapper;
 import com.essence.essencebackend.music.song.model.Song;
+import com.essence.essencebackend.music.song.model.SongArtist;
 import com.essence.essencebackend.music.song.repository.SongRepository;
 import com.essence.essencebackend.music.song.service.SongService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
-import org.schabi.newpipe.extractor.search.SearchInfo;
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.springframework.stereotype.Service;
@@ -24,9 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -72,9 +70,9 @@ public class SongServiceImpl implements SongService {
                     streamingService.get(),songUrl
             );
 
-            List<Artist> artist = artistService.getOrCreateArtistBySong(info.getUploaderUrl());
-            Album album = albumService.getOrCreateAlbumBySong(info.getName(), artist.getNameArtist());
-
+            Set<Artist> artists = artistService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
+            Artist principal = artists.iterator().next();
+            Album album = albumService.getOrCreateAlbumBySong(info.getName(), principal.getNameArtist(), artists);
             String streamingUrl = info.getAudioStreams().stream()
                     .max(Comparator.comparing(AudioStream::getBitrate))
                     .map(AudioStream::getUrl)
@@ -82,9 +80,23 @@ public class SongServiceImpl implements SongService {
 
             Song song = mapToSong(info, streamingUrl, data.id());
             song.setAlbum(album);
-            song.setSongArtists(artist);
-            songRepository.save(song);
-            return songMapper.toDto(song);
+            Song savedSong = songRepository.save(song);
+            List<SongArtist> songArtists = new ArrayList<>();
+            int order = 0;
+
+            for (Artist artist : artists) {
+                SongArtist sa = new SongArtist();
+                sa.setId(new SongArtistId(savedSong.getId(), artist.getId()));
+                sa.setSong(savedSong);
+                sa.setArtist(artist);
+                sa.setIsPrimary(order == 0);
+                sa.setArtistOrder(order++);
+                songArtists.add(sa);
+            }
+            savedSong.setSongArtists(songArtists);
+            songRepository.save(savedSong);
+
+            return songMapper.toDto(savedSong);
         } catch (Exception e) {
             log.error("Error obteniendo metadata de canción: {}", e.getMessage());
             throw new ExtractionServiceUnavailableException();
