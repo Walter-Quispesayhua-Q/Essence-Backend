@@ -37,6 +37,9 @@ public class Artist {
     @Size(max = 10)
     private String country;
 
+    @Column(name = "name_normalized")
+    private String nameNormalized;
+
     @OneToMany(mappedBy = "artist", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<AlbumArtist> albumArtists;
 

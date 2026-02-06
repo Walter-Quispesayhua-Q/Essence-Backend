@@ -9,11 +9,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
 import org.schabi.newpipe.extractor.channel.ChannelInfoItem;
-import org.schabi.newpipe.extractor.search.SearchInfo;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Optional;
+import java.text.Normalizer;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -23,53 +22,91 @@ public class ArtistServiceImpl implements ArtistService {
     private final ArtistRepository artistRepository;
     private final Optional<StreamingService> streamingService;
     private final UrlExtractor urlExtractor;
+    private final SearchArtistService searchArtistService;
 
     @Override
-    public List<Artist> getOrCreateArtistBySong(String artistUrl) {
+    public Set<Artist> getOrCreateArtistBySong(String artistUrl, String artistsNames) {
         log.info("Obteniendo artista por su url: {}", artistUrl);
 
-        String artistUrlId = urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST);
-        Optional<List<Artist>> artistExits = artistRepository.findByArtistUrl(artistUrlId);
+        Set<Artist> artistsExist = new HashSet<>();
+        Set<Artist> artistsForSave = new HashSet<>();
 
-        if (artistExits.isPresent()) {
-            return artistExits.get();
+        String artistaUrlId = urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST);
+
+        Optional<Artist> artistExistUrl = artistRepository.findByArtistUrl(artistaUrlId);
+        if (artistExistUrl.isPresent()) {
+            Artist artistExisting =  artistExistUrl.get();
+            if (artistExisting.getDescription() == null) {
+               try {
+                   ChannelInfo info = ChannelInfo.getInfo(streamingService.get(), artistUrl);
+                   artistExisting.setDescription(info.getDescription());
+                   artistRepository.save(artistExisting);
+               } catch (Exception e) {
+                   log.error("Error al completar datos para el artista: {}", e.getMessage());
+               }
+            }
+            artistsExist.add(artistExisting);
+        } else {
+            try {
+                ChannelInfo artistInfo = ChannelInfo.getInfo(
+                        streamingService.get(),
+                        artistUrl
+                );
+
+                Artist artistP = mapToArtist(artistInfo, artistUrl);
+                artistsForSave.add(artistP);
+            } catch (Exception e) {
+                log.error("Error obteniendo artista: {}", e.getMessage());
+                return null;
+            }
         }
 
-        try {
-            ChannelInfo artistInfo = ChannelInfo.getInfo(
-                    streamingService.get(),
-                    artistUrl
-            );
-            return artistRepository.saveAll(mapToArtist(artistInfo, artistUrlId));
+        List<String> namesSecond = secondaryArtistByNames(artistsNames);
+
+        for (String name : namesSecond) {
+            String normalizedArtists = normalizeForSearch(name);
+            Optional<Artist> artist = artistRepository.findByNameNormalized(normalizedArtists);
+            if (artist.isPresent()) {
+                artistsExist.add(artist.get());
+            } else {
+                ChannelInfoItem item = searchArtistService.searchArtistsItems(name);
+                if (item == null){
+                    log.info("no se pudo obtener los datos de este artista: {} , continuamos con el siguiente", name);
+                    continue;
+                }
+                Artist artistSecond = mapToArtistFromItem(item);
+                artistsForSave.add(artistSecond);
+            }
+
         }
-        catch (Exception e) {
-            log.error("Error obteniendo artista: {}", e.getMessage());
-            return null;
-        }
+        artistRepository.saveAll(artistsForSave);
+        Set<Artist> artists = new HashSet<>(artistsExist);
+        artists.addAll(artistsForSave);
+        return artists;
     }
 
-    public Artist searchArtistByName(String artistName) {
-        SearchInfo search = SearchInfo.getInfo(
-                streamingService.get(),
-                streamingService.get().getSearchQHFactory().fromQuery(
-                        artistName,
-                        List.of("music_artists"),
-                        ""
-                )
-        );
+    private List<String> secondaryArtistByNames(String allArtists) {
+        if (allArtists == null || allArtists.isBlank()) {
+            return List.of();
+        }
 
-        ChannelInfoItem item = (ChannelInfoItem) search.getRelatedItems().get(0);
-        return mapToArtist(item, item.getUrl());
+        String[] names = allArtists.split(" y | & |, ");
+
+        if (names.length <= 1) {
+            return List.of();
+        }
+
+        return Arrays.stream(names)
+                .skip(1)
+                .map(String::trim)
+                .filter(name -> !name.isBlank())
+                .toList();
     }
 
-    private Artist mapToArtistFromItem(ChannelInfoItem item) {
-        Artist artist = new Artist();
-        artist.setNameArtist(item.getName());
-        artist.setImageKey(item.getThumbnails().isEmpty() ? null
-                : item.getThumbnails().get(0).getUrl());
-        artist.setArtistUrl(urlExtractor.extractId(item.getUrl(), ContentType.ARTIST));
-        // description NO disponible en ChannelInfoItem
-        return artist;
+    private String normalizeForSearch(String name) {
+        String normalized = Normalizer.normalize(name, Normalizer.Form.NFD);
+        String withoutAccents = normalized.replaceAll("\\p{M}", "");
+        return withoutAccents.toLowerCase().trim();
     }
 
     private Artist mapToArtist(ChannelInfo info, String artistUrl) {
@@ -78,7 +115,18 @@ public class ArtistServiceImpl implements ArtistService {
         artist.setDescription(info.getDescription());
         artist.setImageKey(info.getAvatars().isEmpty() ? null
                 : info.getAvatars().get(0).getUrl());
-        artist.setArtistUrl(urlExtractor.extractId(artistUrl, ContentType.ARTIST));
+        artist.setArtistUrl(urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST));
+        artist.setNameNormalized(normalizeForSearch(info.getName()));
+        return artist;
+    }
+
+    private Artist mapToArtistFromItem(ChannelInfoItem item) {
+        Artist artist = new Artist();
+        artist.setNameArtist(item.getName());
+        artist.setImageKey(item.getThumbnails().isEmpty() ? null
+                : item.getThumbnails().get(0).getUrl());
+        artist.setArtistUrl(urlExtractor.extractId(item.getUrl(), UrlExtractor.ContentType.ARTIST));
+        artist.setNameNormalized(normalizeForSearch(item.getName()));
         return artist;
     }
 }
