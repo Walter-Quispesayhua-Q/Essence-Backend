@@ -8,6 +8,7 @@ import com.essence.essencebackend.music.artist.service.ArtistService;
 import com.essence.essencebackend.music.shared.dto.IdStreamingRequestDTO;
 import com.essence.essencebackend.music.shared.model.embedded.SongArtistId;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
+import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
 import com.essence.essencebackend.music.song.mapper.SongMapper;
 import com.essence.essencebackend.music.song.model.Song;
@@ -19,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.stream.AudioStream;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
+import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,13 +38,14 @@ public class SongServiceImpl implements SongService {
     private final SongMapper songMapper;
     private final AlbumService albumService;
     private final ArtistService artistService;
+    private final UrlExtractor urlExtractor;
 
     private final Optional<StreamingService> streamingService;
 
     @Override
     @Transactional
-    public SongResponseDTO getSongId(IdStreamingRequestDTO data, String username) {
-        log.info("Obteniendo canción por la id: {}, por el usuario: {}", data.id() , username);
+    public SongResponseDTO getSongId(IdStreamingRequestDTO data) {
+        log.info("Obteniendo canción por la id: {}, por el usuario:", data.id() );
 
         String songUrl = urlBuilder.build(data.id(), UrlBuilder.ContentType.SONG);
 
@@ -99,6 +102,61 @@ public class SongServiceImpl implements SongService {
             return songMapper.toDto(savedSong);
         } catch (Exception e) {
             log.error("Error obteniendo metadata de canción: {}", e.getMessage());
+            throw new ExtractionServiceUnavailableException();
+        }
+    }
+
+    @Override
+    public Song getOrCreateSongFromAlbum(StreamInfoItem item, Album album) {
+
+        String songUrlId = urlExtractor.extractId(item.getUrl(), UrlExtractor.ContentType.SONG);
+
+        Optional<Song> songExits = songRepository.findByHlsMasterKey(songUrlId);
+        if (songExits.isPresent()) {
+            Song song = songExits.get();
+            log.info("Verificando si url está vigente: {}", song.getHlsMasterKey());
+            if (isUrlValid(song.getLastSyncedAt())) {
+                log.info("Url vigente para canción: {}", song.getHlsMasterKey());
+                return song;
+            }
+            log.warn("Url vencida, refrescando: {}", song.getHlsMasterKey());
+
+            String newUrlValid = getUrlValid(song.getHlsMasterKey());
+
+            song.setStreamingUrl(newUrlValid);
+            song.setLastSyncedAt(Instant.now());
+            songRepository.save(song);
+            return song;
+        }
+
+        try {
+            StreamInfo info = StreamInfo.getInfo(
+                    streamingService.get(),item.getUrl()
+            );
+            Set<Artist> artists = artistService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
+
+            String streamingUrl = info.getAudioStreams().stream()
+                    .max(Comparator.comparing(AudioStream::getBitrate))
+                    .map(AudioStream::getUrl)
+                    .orElse(null);
+            Song song = mapToSong(info, streamingUrl, songUrlId);
+            song.setAlbum(album);
+            Song savedSong = songRepository.save(song);
+            List<SongArtist> songArtists = new ArrayList<>();
+            int order = 0;
+
+            for (Artist artist : artists) {
+                SongArtist sa = new SongArtist();
+                sa.setId(new SongArtistId(savedSong.getId(), artist.getId()));
+                sa.setSong(savedSong);
+                sa.setArtist(artist);
+                sa.setIsPrimary(order == 0);
+                sa.setArtistOrder(order++);
+                songArtists.add(sa);
+            }
+            savedSong.setSongArtists(songArtists);
+            return songRepository.save(savedSong);
+        } catch (Exception e) {
             throw new ExtractionServiceUnavailableException();
         }
     }

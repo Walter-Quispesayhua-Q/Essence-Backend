@@ -11,6 +11,14 @@ public class UrlExtractor {
             case ARTIST -> extractArtistId(url);
         };
     }
+
+    public String resolverId(String urlOrId, ContentType type) {
+        if (!urlOrId.startsWith("http")) {
+            return urlOrId;
+        }
+        return extractId(urlOrId, type);
+    }
+
     private String extractSongId(String url) {
         if (url.contains("v=")) {
             return url.split("v=")[1].split("&")[0];

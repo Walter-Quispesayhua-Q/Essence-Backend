@@ -16,4 +16,11 @@ public class UrlBuilder {
             case ARTIST -> "https://music.youtube.com/channel/" + id;
         };
     }
+
+    public String resolveUrl(String idOrUrl, ContentType type) {
+        if (idOrUrl.startsWith("http")) {
+            return idOrUrl;
+        }
+        return build(idOrUrl, type);
+    }
 }

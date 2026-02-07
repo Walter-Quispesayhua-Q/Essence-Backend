@@ -1,5 +1,6 @@
 package com.essence.essencebackend.music.album.service.impl;
 
+import com.essence.essencebackend.music.album.mapper.AlbumMapperByInfo;
 import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.album.model.AlbumArtist;
 import com.essence.essencebackend.music.album.repository.AlbumRepository;
@@ -25,6 +26,7 @@ public class AlbumServiceImpl implements AlbumService {
     private final AlbumRepository albumRepository;
     private final UrlExtractor urlExtractor;
     private final SearchAlbumService searchAlbumService;
+    private final AlbumMapperByInfo albumMapperByInfo;
 
     @Override
     public Album getOrCreateAlbumBySong(String songName, String artistName, Set<Artist> artists) {
@@ -43,7 +45,7 @@ public class AlbumServiceImpl implements AlbumService {
 
         try {
             PlaylistInfo albumInfo = searchAlbumService.getAlbumInfoByUrl(albumUrl);
-            Album album = mapToAlbum(albumInfo);
+            Album album = albumMapperByInfo.mapToAlbum(albumInfo);
             Album savedAlbum = albumRepository.save(album);
 
             List<AlbumArtist> albumArtists = new ArrayList<>();
@@ -64,17 +66,5 @@ public class AlbumServiceImpl implements AlbumService {
             log.error("Error al guardar nuevo álbum: {}", e.getMessage());
             return null;
         }
-    }
-
-    private Album mapToAlbum(PlaylistInfo info) {
-        Album album = new Album();
-        album.setTitle(info.getName());
-        album.setDescription(info.getDescription().getContent());
-        album.setImageKey(info.getThumbnails().isEmpty() ? null
-                : info.getThumbnails().get(0).getUrl());
-        album.setAlbumUrl(
-                urlExtractor.extractId(info.getUrl(), UrlExtractor.ContentType.ALBUM)
-        );
-        return album;
     }
 }
