@@ -1,11 +1,7 @@
 package com.essence.essencebackend.music.album.service;
 
-import com.essence.essencebackend.music.album.model.Album;
-import com.essence.essencebackend.music.artist.model.Artist;
-
-import java.util.Set;
+import com.essence.essencebackend.music.album.dto.AlbumResponseDTO;
 
 public interface AlbumService {
-    Album getOrCreateAlbumBySong(String songName, String artistName, Set<Artist> artists);
-
+    AlbumResponseDTO getAlbumDetail(String username, String albumUrlOrId);
 }

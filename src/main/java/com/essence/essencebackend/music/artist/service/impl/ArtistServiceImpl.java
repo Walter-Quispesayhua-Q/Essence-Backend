@@ -1,132 +1,141 @@
 package com.essence.essencebackend.music.artist.service.impl;
 
+import com.essence.essencebackend.autentication.shared.repository.UserRepository;
+import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
+import com.essence.essencebackend.music.album.dto.AlbumResponseSimpleDTO;
+import com.essence.essencebackend.music.album.mapper.AlbumMapperByInfo;
+import com.essence.essencebackend.music.artist.dto.ArtistsResponseDTO;
+import com.essence.essencebackend.music.artist.mapper.ArtistMapperByInfo;
 import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.artist.repository.ArtistRepository;
 import com.essence.essencebackend.music.artist.service.ArtistService;
-import com.essence.essencebackend.music.shared.service.UrlExtractor;
+import com.essence.essencebackend.music.shared.service.UrlBuilder;
+import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
+import com.essence.essencebackend.music.song.mapper.SongMapperByInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.schabi.newpipe.extractor.InfoItem;
 import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
-import org.schabi.newpipe.extractor.channel.ChannelInfoItem;
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabExtractor;
+import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler;
+import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem;
+import org.schabi.newpipe.extractor.stream.StreamInfoItem;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
-import java.text.Normalizer;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 
 @RequiredArgsConstructor
 @Slf4j
 @Service
 public class ArtistServiceImpl implements ArtistService {
 
+    private final UserRepository userRepository;
     private final ArtistRepository artistRepository;
+    private final UrlBuilder urlBuilder;
     private final Optional<StreamingService> streamingService;
-    private final UrlExtractor urlExtractor;
-    private final SearchArtistService searchArtistService;
+    private final SongMapperByInfo songMapperByInfo;
+    private final AlbumMapperByInfo albumMapperByInfo;
+    private final ArtistMapperByInfo artistMapperByInfo;
+
+    @Qualifier("songBatchExecutor")
+    private final ExecutorService executor;
+
 
     @Override
-    public Set<Artist> getOrCreateArtistBySong(String artistUrl, String artistsNames) {
-        log.info("Obteniendo artista por su url: {}", artistUrl);
+    public ArtistsResponseDTO getArtistDetail(String username, String artistUrlOrId) {
+        log.info("Obteniendo artista por el usuario: {}", username);
 
-        Set<Artist> artistsExist = new LinkedHashSet<>();
-        Set<Artist> artistsForSave = new LinkedHashSet<>();
-
-        String artistaUrlId = urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST);
-
-        Optional<Artist> artistExistUrl = artistRepository.findByArtistUrl(artistaUrlId);
-        if (artistExistUrl.isPresent()) {
-            Artist artistExisting =  artistExistUrl.get();
-            if (artistExisting.getDescription() == null) {
-               try {
-                   ChannelInfo info = ChannelInfo.getInfo(streamingService.get(), artistUrl);
-                   artistExisting.setDescription(info.getDescription());
-                   artistRepository.save(artistExisting);
-               } catch (Exception e) {
-                   log.error("Error al completar datos para el artista: {}", e.getMessage());
-               }
-            }
-            artistsExist.add(artistExisting);
-        } else {
-            try {
-                ChannelInfo artistInfo = ChannelInfo.getInfo(
-                        streamingService.get(),
-                        artistUrl
-                );
-
-                Artist artistP = mapToArtist(artistInfo, artistUrl);
-                artistsForSave.add(artistP);
-            } catch (Exception e) {
-                log.error("Error obteniendo artista: {}", e.getMessage());
-                return null;
-            }
+        if (userRepository.findByUsername(username).isEmpty()) {
+            log.warn("Usuario no encontrado: {}", username);
+            return null;
         }
 
-        List<String> namesSecond = secondaryArtistByNames(artistsNames);
+        String artistUrl = urlBuilder.resolveUrl(artistUrlOrId, UrlBuilder.ContentType.ARTIST);
 
-        for (String name : namesSecond) {
-            String normalizedArtists = normalizeForSearch(name);
-            Optional<Artist> artist = artistRepository.findByNameNormalized(normalizedArtists);
-            if (artist.isPresent()) {
-                artistsExist.add(artist.get());
-            } else {
-                ChannelInfoItem item = searchArtistService.searchArtistsItems(name);
-                if (item == null){
-                    log.info("no se pudo obtener los datos de este artista: {} , continuamos con el siguiente", name);
-                    continue;
-                }
-                Artist artistSecond = mapToArtistFromItem(item);
-                artistsForSave.add(artistSecond);
-            }
+        Artist artist = artistRepository.findByArtistUrl(artistUrl)
+                .orElseGet(() -> createArtistFromChannel(artistUrl));
 
-        }
-        artistRepository.saveAll(artistsForSave);
-        Set<Artist> artists = new LinkedHashSet<>(artistsExist);
-        artists.addAll(artistsForSave);
-        return artists;
-    }
+        CompletableFuture<List<InfoItem>> songsFuture = CompletableFuture.supplyAsync(
+                () -> getSongsForArtistDetail(artistUrl), executor);
 
-    private List<String> secondaryArtistByNames(String allArtists) {
-        if (allArtists == null || allArtists.isBlank()) {
-            return List.of();
-        }
+        CompletableFuture<List<InfoItem>> albumsFuture = CompletableFuture.supplyAsync(
+                () -> getAlbumsForArtistDetail(artistUrl), executor);
 
-        String[] names = allArtists.split(" y | & |, ");
-
-        if (names.length <= 1) {
-            return List.of();
-        }
-
-        return Arrays.stream(names)
-                .skip(1)
-                .map(String::trim)
-                .filter(name -> !name.isBlank())
+        List<SongResponseSimpleDTO> songs = songsFuture.join().stream()
+                .filter(StreamInfoItem.class::isInstance)
+                .map(StreamInfoItem.class::cast)
+                .map(songMapperByInfo::mapFromItem)
                 .toList();
+
+        List<AlbumResponseSimpleDTO> albums = albumsFuture.join().stream()
+                .filter(PlaylistInfoItem.class::isInstance)
+                .map(PlaylistInfoItem.class::cast)
+                .map(albumMapperByInfo::mapFromItem)
+                .toList();
+
+        return new ArtistsResponseDTO(
+                artist.getId(),
+                artist.getNameArtist(),
+                artist.getDescription(),
+                artist.getImageKey(),
+                artist.getArtistUrl(),
+                artist.getCountry(),
+                albums,
+                songs
+        );
     }
 
-    private String normalizeForSearch(String name) {
-        String normalized = Normalizer.normalize(name, Normalizer.Form.NFD);
-        String withoutAccents = normalized.replaceAll("\\p{M}", "");
-        return withoutAccents.toLowerCase().trim();
+    private Artist createArtistFromChannel(String artistUrl) {
+        try {
+            ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
+            return artistRepository.save(artistMapperByInfo.mapToArtist(artistInfo, artistUrl));
+        } catch (Exception e) {
+            log.error("Error al crear artista {}: {}", artistUrl, e.getMessage());
+            throw new ExtractionServiceUnavailableException();
+        }
     }
 
-    private Artist mapToArtist(ChannelInfo info, String artistUrl) {
-        Artist artist = new Artist();
-        artist.setNameArtist(info.getName());
-        artist.setDescription(info.getDescription());
-        artist.setImageKey(info.getAvatars().isEmpty() ? null
-                : info.getAvatars().get(0).getUrl());
-        artist.setArtistUrl(urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST));
-        artist.setNameNormalized(normalizeForSearch(info.getName()));
-        return artist;
+
+    private List<InfoItem> getSongsForArtistDetail(String artistUrl) {
+        String tabUrl = urlBuilder.buildArtistTabUrl(artistUrl, UrlBuilder.SONGS_TAB);
+
+        try {
+            ListLinkHandler tabHandler = streamingService.get()
+                    .getChannelTabLHFactory()
+                    .fromUrl(tabUrl);
+
+            ChannelTabExtractor extractor = streamingService.get()
+                    .getChannelTabExtractor(tabHandler);
+
+            extractor.fetchPage();
+            return extractor.getInitialPage().getItems();
+        } catch (Exception e) {
+            log.error("Error obteniendo tab de canciónes de artista {}: {}", artistUrl, e.getMessage());
+            throw new ExtractionServiceUnavailableException();
+        }
     }
 
-    private Artist mapToArtistFromItem(ChannelInfoItem item) {
-        Artist artist = new Artist();
-        artist.setNameArtist(item.getName());
-        artist.setImageKey(item.getThumbnails().isEmpty() ? null
-                : item.getThumbnails().get(0).getUrl());
-        artist.setArtistUrl(urlExtractor.extractId(item.getUrl(), UrlExtractor.ContentType.ARTIST));
-        artist.setNameNormalized(normalizeForSearch(item.getName()));
-        return artist;
+    private List<InfoItem> getAlbumsForArtistDetail(String artistUrl) {
+        String tabUrl = urlBuilder.buildArtistTabUrl(artistUrl, UrlBuilder.ALBUMS_TAB);
+
+        try {
+            ListLinkHandler tabHandler = streamingService.get()
+                    .getChannelTabLHFactory()
+                    .fromUrl(tabUrl);
+
+            ChannelTabExtractor extractor = streamingService.get()
+                    .getChannelTabExtractor(tabHandler);
+            extractor.fetchPage();
+            return extractor.getInitialPage().getItems();
+
+        } catch (Exception e) {
+            log.error("Error obteniendo tab de albums del artista {}: {}", artistUrl, e.getMessage());
+            throw new ExtractionServiceUnavailableException();
+        }
     }
 }

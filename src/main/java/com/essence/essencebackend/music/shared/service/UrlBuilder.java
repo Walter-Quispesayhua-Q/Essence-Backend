@@ -9,6 +9,10 @@ public class UrlBuilder {
 
     public enum ContentType { SONG, ALBUM, ARTIST }
 
+    // tabs para obtener album y canciones de un artista
+    public static final String SONGS_TAB = "videos";
+    public static final String ALBUMS_TAB = "playlists";
+
     public String build(String id, ContentType type) {
         return switch (type) {
             case SONG -> "https://music.youtube.com/watch?v=" + id;
@@ -22,5 +26,9 @@ public class UrlBuilder {
             return idOrUrl;
         }
         return build(idOrUrl, type);
+    }
+
+    public String buildArtistTabUrl(String artistId, String tabPath) {
+        return "https://music.youtube.com/channel/" + artistId + "/" + tabPath;
     }
 }

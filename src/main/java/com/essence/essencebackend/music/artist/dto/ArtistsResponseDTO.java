@@ -11,6 +11,7 @@ public record ArtistsResponseDTO(
         String nameArtist,
         String description,
         String imageKey,
+        String artistUrl,
         String country,
 
         List<AlbumResponseSimpleDTO> albums,

@@ -11,13 +11,13 @@ public record SongResponseDTO(
         Long id,
         String title,
         Integer durationMs,
-        LocalDate releaseDate,
         String hlsMasterKey,
         String imageKey,
         String songType,
         Long totalPlays,
 
         List<ArtistResponseSimpleDTO> artists,
-        AlbumResponseSimpleDTO album
+        AlbumResponseSimpleDTO album,
+        LocalDate releaseDate
 ) {
 }

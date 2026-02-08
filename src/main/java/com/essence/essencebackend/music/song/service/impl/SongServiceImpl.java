@@ -2,15 +2,16 @@ package com.essence.essencebackend.music.song.service.impl;
 
 import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
 import com.essence.essencebackend.music.album.model.Album;
-import com.essence.essencebackend.music.album.service.AlbumService;
+import com.essence.essencebackend.music.album.service.AlbumOfSongService;
 import com.essence.essencebackend.music.artist.model.Artist;
-import com.essence.essencebackend.music.artist.service.ArtistService;
+import com.essence.essencebackend.music.artist.service.ArtistOfSongService;
 import com.essence.essencebackend.music.shared.dto.IdStreamingRequestDTO;
 import com.essence.essencebackend.music.shared.model.embedded.SongArtistId;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
 import com.essence.essencebackend.music.song.mapper.SongMapper;
+import com.essence.essencebackend.music.song.mapper.SongMapperByInfo;
 import com.essence.essencebackend.music.song.model.Song;
 import com.essence.essencebackend.music.song.model.SongArtist;
 import com.essence.essencebackend.music.song.repository.SongRepository;
@@ -36,10 +37,10 @@ public class SongServiceImpl implements SongService {
     private final UrlBuilder urlBuilder;
     private final SongRepository songRepository;
     private final SongMapper songMapper;
-    private final AlbumService albumService;
-    private final ArtistService artistService;
+    private final AlbumOfSongService albumOfSongService;
+    private final ArtistOfSongService artistOfSongService;
     private final UrlExtractor urlExtractor;
-
+    private final SongMapperByInfo songMapperByInfo;
     private final Optional<StreamingService> streamingService;
 
     @Override
@@ -73,15 +74,15 @@ public class SongServiceImpl implements SongService {
                     streamingService.get(),songUrl
             );
 
-            Set<Artist> artists = artistService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
+            Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
             Artist principal = artists.iterator().next();
-            Album album = albumService.getOrCreateAlbumBySong(info.getName(), principal.getNameArtist(), artists);
+            Album album = albumOfSongService.getOrCreateAlbumBySong(info.getName(), principal.getNameArtist(), artists);
             String streamingUrl = info.getAudioStreams().stream()
                     .max(Comparator.comparing(AudioStream::getBitrate))
                     .map(AudioStream::getUrl)
                     .orElse(null);
 
-            Song song = mapToSong(info, streamingUrl, data.id());
+            Song song = songMapperByInfo.mapToSong(info, streamingUrl, data.id());
             song.setAlbum(album);
             Song savedSong = songRepository.save(song);
             List<SongArtist> songArtists = new ArrayList<>();
@@ -133,13 +134,13 @@ public class SongServiceImpl implements SongService {
             StreamInfo info = StreamInfo.getInfo(
                     streamingService.get(),item.getUrl()
             );
-            Set<Artist> artists = artistService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
+            Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(info.getUploaderUrl(), info.getUploaderName());
 
             String streamingUrl = info.getAudioStreams().stream()
                     .max(Comparator.comparing(AudioStream::getBitrate))
                     .map(AudioStream::getUrl)
                     .orElse(null);
-            Song song = mapToSong(info, streamingUrl, songUrlId);
+            Song song = songMapperByInfo.mapToSong(info, streamingUrl, songUrlId);
             song.setAlbum(album);
             Song savedSong = songRepository.save(song);
             List<SongArtist> songArtists = new ArrayList<>();
@@ -159,20 +160,6 @@ public class SongServiceImpl implements SongService {
         } catch (Exception e) {
             throw new ExtractionServiceUnavailableException();
         }
-    }
-
-    private Song mapToSong(StreamInfo info,String streamingUrl, String streamingUrlId) {
-        Song song = new Song();
-        song.setTitle(info.getName());
-        song.setDurationMs((int) info.getDuration() * 1000);
-        song.setHlsMasterKey(streamingUrlId);
-        song.setStreamingUrl(streamingUrl);
-        song.setImageKey(info.getThumbnails().isEmpty() ? null
-                : info.getThumbnails().get(0).getUrl());
-        song.setTotalStreams(info.getViewCount());
-        song.setLastSyncedAt(Instant.now());
-        song.setStatus("ACTIVE");
-        return song;
     }
 
     private String getUrlValid(String hlsMasterKey) {

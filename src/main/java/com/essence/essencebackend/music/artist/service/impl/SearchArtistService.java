@@ -1,7 +1,5 @@
 package com.essence.essencebackend.music.artist.service.impl;
 
-import com.essence.essencebackend.music.artist.model.Artist;
-import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
@@ -18,7 +16,6 @@ import java.util.Optional;
 public class SearchArtistService {
 
     private final Optional<StreamingService> streamingService;
-    private final UrlExtractor urlExtractor;
 
     public  ChannelInfoItem searchArtistsItems(String artistName) {
         log.info("Buscando artista por nombre: {}", artistName);
