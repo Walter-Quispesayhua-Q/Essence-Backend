@@ -6,8 +6,8 @@ import java.util.List;
 
 public interface PlaylistContentService {
 
-    boolean addSongToPlaylist(Long songId, Long playlistId, String username);
-    void deleteSongToPlaylist(Long songId, Long playlistId, String username);
+    boolean addSongToPlaylist(Long playlistId, Long songId, String username);
+    void deleteSongToPlaylist(Long playlistId, Long songId, String username);
 
     List<SongResponseSimpleDTO> getSongForPlaylist(Long id, String username);
 }

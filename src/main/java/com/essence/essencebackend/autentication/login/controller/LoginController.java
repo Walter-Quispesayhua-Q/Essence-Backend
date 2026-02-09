@@ -23,11 +23,4 @@ public class LoginController {
                 new ResponseApi<>("Inicio de sesión exitoso!", loginService.login(data))
         );
     }
-
-    @GetMapping
-    public ResponseEntity<ResponseApi<LoginResponseDTO>> getUser(@RequestHeader("Authorization") String authHeader) {
-        return ResponseEntity.status(HttpStatus.OK).body(
-                new ResponseApi<>("Usuario encontrado exitosamente!", loginService.getUser(authHeader))
-        );
-    }
 }

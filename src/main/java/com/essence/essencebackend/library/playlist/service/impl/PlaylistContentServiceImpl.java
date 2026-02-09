@@ -37,7 +37,7 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
 
     @Override
     @Transactional
-    public boolean addSongToPlaylist(Long songId, Long playlistId, String username) {
+    public boolean addSongToPlaylist(Long playlistId, Long songId, String username) {
         log.info("Agregando canción con el UrlId: {} , a la playlists con el UrlId: {} , por el usuario: {}" , songId, playlistId, username);
 
         PlaylistSongContext context = getContext(username, playlistId, songId);
@@ -62,7 +62,7 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
 
     @Override
     @Transactional
-    public void deleteSongToPlaylist(Long songId, Long playlistId, String username) {
+    public void deleteSongToPlaylist(Long playlistId, Long songId, String username) {
         log.info("Eliminando canción con el UrlId: {} , de la playlists con el UrlId: {} , por el usuario: {}" , songId, playlistId, username);
 
         getContext(username, playlistId, songId);

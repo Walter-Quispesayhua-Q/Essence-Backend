@@ -16,12 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.InfoItem;
 import org.schabi.newpipe.extractor.StreamingService;
+import org.schabi.newpipe.extractor.channel.ChannelExtractor;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
 import org.schabi.newpipe.extractor.channel.tabs.ChannelTabExtractor;
+import org.schabi.newpipe.extractor.channel.tabs.ChannelTabs;
 import org.schabi.newpipe.extractor.linkhandler.ListLinkHandler;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -44,7 +45,6 @@ public class ArtistServiceImpl implements ArtistService {
     @Resource(name = "smallExecutor")
     private ExecutorService executor;
 
-
     @Override
     public ArtistsResponseDTO getArtistDetail(String username, String artistUrlOrId) {
         log.info("Obteniendo artista por el usuario: {}", username);
@@ -54,11 +54,21 @@ public class ArtistServiceImpl implements ArtistService {
         Artist artist = artistRepository.findByArtistUrl(artistUrl)
                 .orElseGet(() -> createArtistFromChannel(artistUrl));
 
+        String youtubeUrl = toYoutubeUrl(artistUrl);
+
         CompletableFuture<List<InfoItem>> songsFuture = CompletableFuture.supplyAsync(
-                () -> getSongsForArtistDetail(artistUrl), executor);
+                        () -> getSongsForArtistDetail(youtubeUrl), executor)
+                .exceptionally(ex -> {
+                    log.warn("No se pudo obtener songs: {}", ex.getMessage());
+                    return List.of();
+                });
 
         CompletableFuture<List<InfoItem>> albumsFuture = CompletableFuture.supplyAsync(
-                () -> getAlbumsForArtistDetail(artistUrl), executor);
+                        () -> getAlbumsForArtistDetail(youtubeUrl), executor)
+                .exceptionally(ex -> {
+                    log.warn("No se pudo obtener albums: {}", ex.getMessage());
+                    return List.of();
+                });
 
         List<SongResponseSimpleDTO> songs = songsFuture.join().stream()
                 .filter(StreamInfoItem.class::isInstance)
@@ -84,6 +94,10 @@ public class ArtistServiceImpl implements ArtistService {
         );
     }
 
+    private String toYoutubeUrl(String artistUrl) {
+        return artistUrl.replace("music.youtube.com", "www.youtube.com");
+    }
+
     private Artist createArtistFromChannel(String artistUrl) {
         try {
             ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
@@ -94,42 +108,39 @@ public class ArtistServiceImpl implements ArtistService {
         }
     }
 
-
-    private List<InfoItem> getSongsForArtistDetail(String artistUrl) {
-        String tabUrl = urlBuilder.buildArtistTabUrl(artistUrl, UrlBuilder.SONGS_TAB);
-
-        try {
-            ListLinkHandler tabHandler = streamingService.get()
-                    .getChannelTabLHFactory()
-                    .fromUrl(tabUrl);
-
-            ChannelTabExtractor extractor = streamingService.get()
-                    .getChannelTabExtractor(tabHandler);
-
-            extractor.fetchPage();
-            return extractor.getInitialPage().getItems();
-        } catch (Exception e) {
-            log.error("Error obteniendo tab de canciónes de artista {}: {}", artistUrl, e.getMessage());
-            throw new ExtractionServiceUnavailableException();
-        }
+    private List<InfoItem> getSongsForArtistDetail(String youtubeUrl) {
+        return getTabItems(youtubeUrl, ChannelTabs.VIDEOS);
     }
 
-    private List<InfoItem> getAlbumsForArtistDetail(String artistUrl) {
-        String tabUrl = urlBuilder.buildArtistTabUrl(artistUrl, UrlBuilder.ALBUMS_TAB);
+    private List<InfoItem> getAlbumsForArtistDetail(String youtubeUrl) {
+        return getTabItems(youtubeUrl, ChannelTabs.ALBUMS);
+    }
 
+    private List<InfoItem> getTabItems(String youtubeUrl, String tabName) {
         try {
-            ListLinkHandler tabHandler = streamingService.get()
-                    .getChannelTabLHFactory()
-                    .fromUrl(tabUrl);
+            ChannelExtractor channelExtractor = streamingService.get()
+                    .getChannelExtractor(youtubeUrl);
+            channelExtractor.fetchPage();
 
-            ChannelTabExtractor extractor = streamingService.get()
-                    .getChannelTabExtractor(tabHandler);
-            extractor.fetchPage();
-            return extractor.getInitialPage().getItems();
+            List<ListLinkHandler> tabs = channelExtractor.getTabs();
 
+            Optional<ListLinkHandler> tab = tabs.stream()
+                    .filter(t -> t.getContentFilters().contains(tabName))
+                    .findFirst();
+
+            if (tab.isEmpty()) {
+                log.info("Tab {} no disponible para {}", tabName, youtubeUrl);
+                return List.of();
+            }
+
+            ChannelTabExtractor tabExtractor = streamingService.get()
+                    .getChannelTabExtractor(tab.get());
+            tabExtractor.fetchPage();
+
+            return tabExtractor.getInitialPage().getItems();
         } catch (Exception e) {
-            log.error("Error obteniendo tab de albums del artista {}: {}", artistUrl, e.getMessage());
-            throw new ExtractionServiceUnavailableException();
+            log.warn("Error obteniendo tab {}: {}", tabName, e.getMessage());
+            return List.of();
         }
     }
 }

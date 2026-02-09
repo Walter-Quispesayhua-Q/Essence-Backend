@@ -45,14 +45,23 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
     public void addSongToHistory(
             Long id, String username, PlayHistoryRequestDTO data) {
         log.info("Agregando canción: {}, al historial del usuario: {}", id, username);
-
         User user = userRepository.findByUsername(username)
                 .orElseThrow(
                         () -> new UserNotFoundForUsernameException(username)
                 );
+
         Song song = songRepository.findById(id).orElseThrow(
                 () -> new SongNotFoundException(id)
         );
+        Album album = null;
+        if (data.albumId() != null) {
+            album = albumRepository.findById(data.albumId())
+                    .orElseThrow(
+                            () -> new AlbumNotFoundException(data.albumId())
+                    );
+        } else {
+            album = song.getAlbum();
+        }
 
         Playlist playlist = null;
         if (data.playlistId() != null) {
@@ -61,21 +70,11 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
                             () -> new PlaylistNotFoundException(data.playlistId())
                     );
         }
-
-        Album album = null;
-        if (data.albumId() != null) {
-            album = albumRepository.findById(data.albumId())
-                    .orElseThrow(
-                            () -> new AlbumNotFoundException(data.albumId())
-                    );
-        }
-
         PlayHistory playHistory = playHistoryMapper.toEntity(data);
         playHistory.setUser(user);
         playHistory.setSong(song);
         playHistory.setPlaylist(playlist);
         playHistory.setAlbum(album);
-
         try {
             playHistoryRepository.save(playHistory);
         } catch (RuntimeException e) {
