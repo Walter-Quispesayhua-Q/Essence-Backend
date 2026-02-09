@@ -31,7 +31,7 @@ public class Song {
     @Column(name = "release_date")
     private LocalDate releaseDate;
 
-//    id of video
+//    UrlId of video
     @Column(name = "hls_master_key", nullable = false)
     private String hlsMasterKey;
 

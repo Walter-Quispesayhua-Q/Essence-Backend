@@ -18,15 +18,19 @@ public interface PlayHistoryRepository extends JpaRepository<PlayHistory, Long> 
 
     // Obtener historial con canciones únicas (la más reciente de cada canción)
     @Query("""
-        SELECT ph FROM PlayHistory ph 
-        WHERE ph.user.id = :userId 
-        AND ph.playedAt = (
-            SELECT MAX(ph2.playedAt) 
-            FROM PlayHistory ph2 
-            WHERE ph2.user.id = :userId 
-            AND ph2.song.id = ph.song.id
-        )
-        ORDER BY ph.playedAt DESC
-        """)
+    SELECT ph FROM PlayHistory ph 
+    JOIN FETCH ph.song s 
+    LEFT JOIN FETCH s.album 
+    LEFT JOIN FETCH s.songArtists sa 
+    LEFT JOIN FETCH sa.artist 
+    WHERE ph.user.id = :userId 
+    AND ph.playedAt = (
+        SELECT MAX(ph2.playedAt) 
+        FROM PlayHistory ph2 
+        WHERE ph2.user.id = :userId 
+        AND ph2.song.id = ph.song.id
+    )
+    ORDER BY ph.playedAt DESC
+    """)
     List<PlayHistory> findRecentUniqueSongsByUserId(@Param("userId") Long userId);
 }

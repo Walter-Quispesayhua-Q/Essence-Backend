@@ -21,7 +21,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UserNotFound(email));
 
         return org.springframework.security.core.userdetails.User.builder()
-                .username(user.getEmail())
+                .username(user.getUsername())
                 .password(user.getPasswordHash())
                 .authorities("FREE")
                 .build();

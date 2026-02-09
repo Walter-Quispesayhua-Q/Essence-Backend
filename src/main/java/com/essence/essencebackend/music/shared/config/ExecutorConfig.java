@@ -13,4 +13,9 @@ public class ExecutorConfig {
     public ExecutorService songBatchExecutor() {
         return Executors.newFixedThreadPool(5);
     }
+
+    @Bean(name = "smallExecutor", destroyMethod = "shutdown")
+    public ExecutorService smallExecutor() {
+        return Executors.newFixedThreadPool(2);
+    }
 }

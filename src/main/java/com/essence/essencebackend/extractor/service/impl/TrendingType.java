@@ -5,7 +5,9 @@ import org.schabi.newpipe.extractor.playlist.PlaylistInfoItem;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 
 public enum TrendingType {
-    SONGS("Trending", StreamInfoItem.class),
+
+//    solo está funcionando song
+    SONGS("trending_music", StreamInfoItem.class),
     ALBUMS("New releases", PlaylistInfoItem.class),
     ARTISTS("Trending", ChannelInfoItem.class);
 

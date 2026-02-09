@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS songs (
     duration_ms INTEGER NOT NULL CHECK (duration_ms > 0),
     release_date DATE,
 
---     id of video
+--     UrlId of video
     hls_master_key TEXT NOT NULL,
     image_key TEXT,
     song_type VARCHAR(20),

@@ -1,5 +1,6 @@
 package com.essence.essencebackend.music.artist.mapper;
 
+import com.essence.essencebackend.music.artist.dto.ArtistResponseSimpleDTO;
 import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
@@ -40,5 +41,14 @@ public class ArtistMapperByInfo {
         String normalized = Normalizer.normalize(name, Normalizer.Form.NFD);
         String withoutAccents = normalized.replaceAll("\\p{M}", "");
         return withoutAccents.toLowerCase().trim();
+    }
+
+    public ArtistResponseSimpleDTO mapFromItem(ChannelInfoItem item) {
+        return new ArtistResponseSimpleDTO(
+                null,
+                item.getName(),
+                item.getThumbnails().isEmpty() ? null : item.getThumbnails().get(0).getUrl(),
+                urlExtractor.extractId(item.getUrl(), UrlExtractor.ContentType.ARTIST)
+        );
     }
 }

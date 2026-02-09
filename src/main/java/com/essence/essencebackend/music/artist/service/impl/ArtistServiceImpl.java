@@ -1,6 +1,5 @@
 package com.essence.essencebackend.music.artist.service.impl;
 
-import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
 import com.essence.essencebackend.music.album.dto.AlbumResponseSimpleDTO;
 import com.essence.essencebackend.music.album.mapper.AlbumMapperByInfo;
@@ -12,6 +11,7 @@ import com.essence.essencebackend.music.artist.service.ArtistService;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import com.essence.essencebackend.music.song.mapper.SongMapperByInfo;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.InfoItem;
@@ -34,7 +34,6 @@ import java.util.concurrent.ExecutorService;
 @Service
 public class ArtistServiceImpl implements ArtistService {
 
-    private final UserRepository userRepository;
     private final ArtistRepository artistRepository;
     private final UrlBuilder urlBuilder;
     private final Optional<StreamingService> streamingService;
@@ -42,18 +41,13 @@ public class ArtistServiceImpl implements ArtistService {
     private final AlbumMapperByInfo albumMapperByInfo;
     private final ArtistMapperByInfo artistMapperByInfo;
 
-    @Qualifier("songBatchExecutor")
-    private final ExecutorService executor;
+    @Resource(name = "smallExecutor")
+    private ExecutorService executor;
 
 
     @Override
     public ArtistsResponseDTO getArtistDetail(String username, String artistUrlOrId) {
         log.info("Obteniendo artista por el usuario: {}", username);
-
-        if (userRepository.findByUsername(username).isEmpty()) {
-            log.warn("Usuario no encontrado: {}", username);
-            return null;
-        }
 
         String artistUrl = urlBuilder.resolveUrl(artistUrlOrId, UrlBuilder.ContentType.ARTIST);
 

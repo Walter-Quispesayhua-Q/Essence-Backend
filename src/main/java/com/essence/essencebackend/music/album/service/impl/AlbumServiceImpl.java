@@ -1,6 +1,5 @@
 package com.essence.essencebackend.music.album.service.impl;
 
-import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.music.album.dto.AlbumResponseDTO;
 import com.essence.essencebackend.music.album.mapper.AlbumMapperByInfo;
 import com.essence.essencebackend.music.album.model.Album;
@@ -34,7 +33,6 @@ import java.util.Set;
 @Service
 public class AlbumServiceImpl implements AlbumService {
 
-    private final UserRepository userRepository;
     private final UrlBuilder urlBuilder;
     private final UrlExtractor urlExtractor;
     private final Optional<StreamingService> streamingService;
@@ -49,11 +47,6 @@ public class AlbumServiceImpl implements AlbumService {
     @Override
     public AlbumResponseDTO getAlbumDetail(String username, String albumUrlOrId) {
         log.info("Obteniendo album por el usuario: {}", username);
-
-        if (userRepository.findByUsername(username).isEmpty()) {
-            log.warn("Usuario no encontrado: {}", username);
-            return null;
-        }
 
         String albumUrl = urlBuilder.resolveUrl(albumUrlOrId, UrlBuilder.ContentType.ALBUM);
 
@@ -120,6 +113,4 @@ public class AlbumServiceImpl implements AlbumService {
                 songMapper.toListDto(songs)
         );
     }
-
-
 }

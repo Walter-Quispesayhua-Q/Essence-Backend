@@ -28,24 +28,32 @@ public interface PlaylistMapper {
     @Mapping(source = "playlistId", target = "id")
     @Mapping(source = "createdAt", target = "createdAt", qualifiedByName = "instantToLocalDate")
     @Mapping(source = "updatedAt", target = "updatedAt", qualifiedByName = "instantToLocalDate")
-    @Mapping(source = "totalLikes", target = "totalLikes", qualifiedByName = "mapTotalLikes")
+    @Mapping(target = "totalLikes", expression = "java(mapTotalLikes(toEntity))")
+    @Mapping(target = "totalSongs", expression = "java(mapTotalSongs(toEntity))")
     PlaylistResponseDTO toDto(Playlist toEntity);
 
-
-    @Mapping(source = "totalLikes", target = "totalLikes", qualifiedByName = "mapTotalLikes")
+    @Mapping(source = "playlistId", target = "id")
+    @Mapping(target = "totalLikes", expression = "java(mapTotalLikes(toEntity))")
     PlaylistSimpleResponseDTO toDtoSimple(Playlist toEntity);
 
 
     @Named("instantToLocalDate")
     default LocalDate instantToLocalDate(Instant date) {
+        if (date == null) return null;
         return LocalDate.ofInstant(date, ZoneId.systemDefault());
     }
 
-    @Named("mapTotalLikes")
-    default Long mapTotalLikesIfPublic(Playlist playlist) {
-        if (!playlist.getIsPublic()) {
+    // Sin @Named, usa expression = "java(...)"
+    default Long mapTotalLikes(Playlist playlist) {
+        if (playlist == null || !playlist.getIsPublic()) {
             return null;
         }
         return playlist.getTotalLikes();
+    }
+    default Integer mapTotalSongs(Playlist playlist) {
+        if (playlist == null || playlist.getPlaylistSongs() == null) {
+            return 0;
+        }
+        return playlist.getPlaylistSongs().size();
     }
 }

@@ -26,7 +26,12 @@ public class SecurityConfig {
                                 SessionCreationPolicy.STATELESS
                         ))
                 .authorizeHttpRequests((authorize) -> authorize
-                        .requestMatchers("/api/v1/register", "/api/v1/login").permitAll()
+                        .requestMatchers(
+                                "/api/v1/register",
+                                "/api/v1/login",
+                                "/api/v1/home",
+                                "/api/v1/search/**"
+                        ).permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer((oauth2) -> oauth2.jwt(Customizer.withDefaults()));

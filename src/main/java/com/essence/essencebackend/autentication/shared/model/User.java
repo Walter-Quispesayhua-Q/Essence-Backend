@@ -71,6 +71,4 @@ public class User {
     public void onUpdate() {
         this.updatedAt = Instant.now();
     }
-
-
 }

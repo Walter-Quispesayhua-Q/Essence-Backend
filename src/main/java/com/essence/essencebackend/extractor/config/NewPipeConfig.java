@@ -13,30 +13,24 @@ import java.util.Optional;
 @Configuration
 public class NewPipeConfig {
 
-    private static final int YOUTUBE_MUSIC = 5;
+//    usando youtube
+    private static final int YOUTUBE = 0;
     private StreamingService streamingService;
-    private boolean serviceAvailable = false;
+
 
     @PostConstruct
     public void init() {
         try {
             NewPipe.init(new CustomDownloader());
-            streamingService = NewPipe.getService(YOUTUBE_MUSIC);
-            serviceAvailable = true;
-            log.info("NewPipe inicializado correctamente");
+            streamingService = NewPipe.getService(YOUTUBE);
+            log.info("NewPipe inicializado: {}", streamingService.getServiceInfo().getName());
         } catch (Exception e) {
-            log.warn("NewPipe no disponible: {}. La app funcionará sin extracción.", e.getMessage());
-            serviceAvailable = false;
+            log.warn("NewPipe no disponible: {}", e.getMessage());
+            streamingService = null;
         }
     }
-
     @Bean
-    public Optional<StreamingService> streamingService() {
-        return Optional.ofNullable(streamingService);
-    }
-
-    @Bean
-    public boolean isServiceAvailable() {
-        return serviceAvailable;
+    public StreamingService streamingService() {
+        return streamingService;
     }
 }

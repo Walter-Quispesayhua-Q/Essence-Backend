@@ -37,6 +37,9 @@ public class Artist {
     @Size(max = 10)
     private String country;
 
+    @Column(name = "total_streams")
+    private Long totalStreams = 0L;
+
     @Column(name = "name_normalized")
     private String nameNormalized;
 

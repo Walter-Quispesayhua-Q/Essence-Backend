@@ -2,6 +2,7 @@ package com.essence.essencebackend.music.song.service.impl;
 
 import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.song.model.Song;
+import com.essence.essencebackend.music.song.repository.SongRepository;
 import com.essence.essencebackend.music.song.service.SongBatchService;
 import com.essence.essencebackend.music.song.service.SongService;
 import lombok.extern.slf4j.Slf4j;
@@ -19,14 +20,17 @@ import java.util.concurrent.ExecutorService;
 public class SongBatchServiceImpl implements SongBatchService {
 
     private final SongService songService;
+    private final SongRepository songRepository;
 
     private final ExecutorService executor;
 
     public SongBatchServiceImpl(
             SongService songService,
+            SongRepository songRepository,
             @Qualifier("songBatchExecutor") ExecutorService executor
     ) {
         this.songService = songService;
+        this.songRepository = songRepository;
         this.executor = executor;
     }
 
@@ -36,17 +40,19 @@ public class SongBatchServiceImpl implements SongBatchService {
                 .map(item -> CompletableFuture.supplyAsync(
                         () -> songService.getOrCreateSongFromAlbum(item, album),
                         executor
-                ))
+                ).exceptionally(ex -> {
+                    log.warn("Video no disponible: {} - {}", item.getName(), ex.getMessage());
+                    return null;
+                }))
                 .toList();
-
-        return futures.stream()
+        List<Long> songIds = futures.stream()
                 .map(CompletableFuture::join)
-                .peek(song -> {
-                    if (song == null) {
-                        log.warn("Una canción no pudo ser procesada");
-                    }
-                })
                 .filter(Objects::nonNull)
+                .map(Song::getId)
                 .toList();
+        if (songIds.isEmpty()) {
+            return List.of();
+        }
+        return songRepository.findAllByIdWithArtists(songIds);
     }
 }

@@ -51,7 +51,7 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Override
     @Transactional
     public PlaylistSimpleResponseDTO updatePlaylist(Long id, PlaylistRequestDTO dataUpdate, String username) {
-        log.info("Actualizando Playlist con el id: {} , por el usuario: {}", id, username);
+        log.info("Actualizando Playlist con el UrlId: {} , por el usuario: {}", id, username);
 
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new UserNotFoundForUsernameException(username)
@@ -73,7 +73,7 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     public PlaylistResponseDTO getPlaylist(Long id, String username) {
-        log.info("Obteniendo playlist por el id: {} , para el usuario: {}", id, username);
+        log.info("Obteniendo playlist por el UrlId: {} , para el usuario: {}", id, username);
 
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new UserNotFoundForUsernameException(username)
@@ -88,7 +88,7 @@ public class PlaylistServiceImpl implements PlaylistService {
 
     @Override
     public PlaylistSimpleResponseDTO getForUpdate(Long id, String username) {
-        log.info("Obteniendo playlist para editar con el id: {} , para el usuario: {}", id, username);
+        log.info("Obteniendo playlist para editar con el UrlId: {} , para el usuario: {}", id, username);
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new UserNotFoundForUsernameException(username)
         );
@@ -103,7 +103,7 @@ public class PlaylistServiceImpl implements PlaylistService {
     @Override
     @Transactional
     public void deletePlaylist(Long id, String username) {
-        log.info("Procediendo con la eliminación del playlist con la id: {} , por el usuario: {}", id, username);
+        log.info("Procediendo con la eliminación del playlist con la UrlId: {} , por el usuario: {}", id, username);
 
         User user = userRepository.findByUsername(username).orElseThrow(
                 () -> new UserNotFoundForUsernameException(username)

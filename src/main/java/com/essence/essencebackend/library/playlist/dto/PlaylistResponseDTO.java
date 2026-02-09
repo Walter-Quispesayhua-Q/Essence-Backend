@@ -15,6 +15,6 @@ public record PlaylistResponseDTO(
         Integer totalSongs,
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Integer totalLikes
+        Long totalLikes
 ) {
 }

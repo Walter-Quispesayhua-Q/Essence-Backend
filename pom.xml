@@ -123,11 +123,11 @@
             <version>${org.mapstruct.version}</version>
         </dependency>
 
-<!--        para obtener las url y metadata-->
+<!--        para obtener las url y metadata, servicio externo de newpipe-->
         <dependency>
             <groupId>com.github.teamnewpipe</groupId>
             <artifactId>NewPipeExtractor</artifactId>
-            <version>v0.25.1</version>
+            <version>v0.25.2</version>
         </dependency>
     </dependencies>
 

@@ -42,6 +42,9 @@ public class Album {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
+    @Column(name = "total_streams")
+    private Long totalStreams = 0L;
+
     @OneToMany(mappedBy = "album", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Song> songs;
 
