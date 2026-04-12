@@ -9,7 +9,7 @@ import com.essence.essencebackend.library.history.model.PlayHistory;
 import com.essence.essencebackend.library.history.repository.PlayHistoryRepository;
 import com.essence.essencebackend.library.history.service.PlayHistoryService;
 import com.essence.essencebackend.library.playlist.exception.PlaylistNotFoundException;
-import com.essence.essencebackend.library.playlist.exception.UserNotFoundForUsernameException;
+import com.essence.essencebackend.autentication.shared.exception.UserNotFoundForUsernameException;
 import com.essence.essencebackend.library.playlist.model.Playlist;
 import com.essence.essencebackend.library.playlist.repository.PlaylistRepository;
 import com.essence.essencebackend.music.album.exception.AlbumNotFoundException;
@@ -22,6 +22,7 @@ import com.essence.essencebackend.music.song.model.Song;
 import com.essence.essencebackend.music.song.repository.SongRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -65,10 +66,8 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
 
         Playlist playlist = null;
         if (data.playlistId() != null) {
-            playlist = playlistRepository.findById(data.playlistId())
-                    .orElseThrow(
-                            () -> new PlaylistNotFoundException(data.playlistId())
-                    );
+            playlist = playlistRepository.findAccessiblePlaylist(data.playlistId(), user)
+                    .orElseThrow(() -> new PlaylistNotFoundException(data.playlistId()));
         }
         PlayHistory playHistory = playHistoryMapper.toEntity(data);
         playHistory.setUser(user);
@@ -90,11 +89,13 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
                         () -> new UserNotFoundForUsernameException(username)
                 );
 
-        List<PlayHistory> historyList = playHistoryRepository.findRecentUniqueSongsByUserId(user.getId());
+        List<Long> ids = playHistoryRepository.findRecentUniqueIds(user.getId(), PageRequest.of(0, 30));
 
-        if (historyList.isEmpty()) {
+        if (ids.isEmpty()) {
             return List.of();
         }
+
+        List<PlayHistory> historyList = playHistoryRepository.findByIdsWithRelations(ids);
 
         List<Song> songs = historyList.stream()
                 .map(PlayHistory::getSong)

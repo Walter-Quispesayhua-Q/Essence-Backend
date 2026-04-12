@@ -30,7 +30,7 @@ public class Artist {
     @Column(name = "image_key")
     private String imageKey;
 
-    @Column(name = "artist_url")
+    @Column(name = "artist_url", unique = true)
     private String artistUrl;
 
     @Column(name = "country", length = 10)

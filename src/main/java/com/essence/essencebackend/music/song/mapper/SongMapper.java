@@ -18,13 +18,16 @@ public interface SongMapper {
 
 //    para historial
     @Mapping(source = "id", target = "id")
+    @Mapping(source = "totalStreams", target = "totalPlays")
     @Mapping(target = "artistName", expression = "java(getPrimaryArtistName(song))")
     @Mapping(target = "albumName", expression = "java(getAlbumName(song))")
     SongResponseSimpleDTO toSimpleDto(Song song);
 
-//    para canción
-    @Mapping(target = "artists", expression = "java(mapArtists(toEntity))")
-    SongResponseDTO toDto(Song toEntity);
+    @Mapping(source = "song.totalStreams", target = "totalPlays")
+    @Mapping(target = "artists", expression = "java(mapArtists(song))")
+    @Mapping(source = "song.streamingUrl", target = "streamingUrl")
+    @Mapping(source = "isLiked", target = "isLiked")
+    SongResponseDTO toFullDto(Song song, boolean isLiked);
 
     List<SongResponseSimpleDTO> toListDto(List<Song> toListEntity);
 

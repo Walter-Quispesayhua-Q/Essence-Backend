@@ -1,13 +1,12 @@
 package com.essence.essencebackend.music.shared.service;
 
+import com.essence.essencebackend.music.shared.model.ContentType;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 @Slf4j
 @Service
 public class UrlBuilder {
-
-    public enum ContentType { SONG, ALBUM, ARTIST }
 
     public String build(String id, ContentType type) {
         return switch (type) {

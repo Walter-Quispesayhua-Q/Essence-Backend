@@ -3,6 +3,7 @@ package com.essence.essencebackend.user.service.impl;
 import com.essence.essencebackend.autentication.login.dto.LoginResponseDTO;
 import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
+import com.essence.essencebackend.autentication.shared.exception.UserNotFoundForUsernameException;
 import com.essence.essencebackend.user.dto.UserDetailDTO;
 import com.essence.essencebackend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ public class UserServiceImpl implements UserService {
         log.info("Obteniendo usuario actual: {}", username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new UserNotFoundForUsernameException(username));
 
         return new LoginResponseDTO(
                 user.getId(),
@@ -37,7 +38,10 @@ public class UserServiceImpl implements UserService {
         log.info("Obteniendo perfil del usuario: {}", username);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new UserNotFoundForUsernameException(username));
+
+        Object[] stats = userRepository.countUserStats(user.getId());
+        Object[] row = (Object[]) stats[0];
 
         return new UserDetailDTO(
                 user.getId(),
@@ -45,11 +49,11 @@ public class UserServiceImpl implements UserService {
                 user.getEmail(),
                 user.getCreatedAt(),
                 user.getUpdatedAt(),
-                user.getSongLikes() != null ? user.getSongLikes().size() : 0,
-                user.getAlbumLikes() != null ? user.getAlbumLikes().size() : 0,
-                user.getArtistLikes() != null ? user.getArtistLikes().size() : 0,
-                user.getPlaylists() != null ? user.getPlaylists().size() : 0,
-                user.getPlayHistory() != null ? user.getPlayHistory().size() : 0
+                ((Number) row[0]).intValue(),
+                ((Number) row[1]).intValue(),
+                ((Number) row[2]).intValue(),
+                ((Number) row[3]).intValue(),
+                ((Number) row[4]).intValue()
         );
     }
 }

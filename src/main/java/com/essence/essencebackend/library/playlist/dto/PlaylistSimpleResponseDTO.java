@@ -7,6 +7,7 @@ public record PlaylistSimpleResponseDTO(
         Long id,
         String title,
         Boolean isPublic,
+        String type,
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Long totalLikes

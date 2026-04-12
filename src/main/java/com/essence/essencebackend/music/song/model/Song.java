@@ -2,7 +2,6 @@ package com.essence.essencebackend.music.song.model;
 
 import com.essence.essencebackend.music.album.model.Album;
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.Instant;
@@ -32,7 +31,7 @@ public class Song {
     private LocalDate releaseDate;
 
 //    UrlId of video
-    @Column(name = "hls_master_key", nullable = false)
+    @Column(name = "hls_master_key", nullable = false, unique = true)
     private String hlsMasterKey;
 
     @Column(name = "image_key")
@@ -40,15 +39,15 @@ public class Song {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "song_type", length = 20)
-    private SongType songType = SongType.ORIGINAL;
+    private SongType songType = SongType.MUSIC;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "album_id")
     private Album album;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    @Size(max = 20)
-    private String status = "PROCESSING";
+    private SongStatus status = SongStatus.PROCESSING;
 
     @Column(name = "total_streams")
     private Long totalStreams = 0L;
@@ -65,7 +64,7 @@ public class Song {
     @Column(name = "updated_at")
     private Instant updatedAt;
 
-    @Column(name = "streaming_url", length = 2000)
+    @Column(name = "streaming_url", length = 4000)
     private String streamingUrl;
 
     @Column(name = "last_synced_at")

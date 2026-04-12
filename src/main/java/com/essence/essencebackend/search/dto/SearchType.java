@@ -2,7 +2,10 @@ package com.essence.essencebackend.search.dto;
 
 import lombok.Getter;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Getter
 public enum SearchType {
@@ -18,47 +21,56 @@ public enum SearchType {
         this.keywords = List.of(keywords);
     }
 
-    // Desde query → retorna filtro directo
     public static String detectFromQuery(String query) {
-        String lower = query.toLowerCase();
-        for (SearchType type : values()) {
-            for (String keyword : type.keywords) {
-                if (lower.contains(keyword)) {
+        if (query == null || query.isBlank()) {
+            return null;
+        }
+        String[] tokens = query.toLowerCase().trim().split("\\s+");
+        Set<String> allKeywords = allKeywordsSet();
+        for (String token : tokens) {
+            if (!allKeywords.contains(token)) continue;
+            for (SearchType type : values()) {
+                if (type.keywords.contains(token)) {
                     return type.toNewPipeFilter();
                 }
             }
         }
         return null;
     }
-    // Desde categoría → retorna filtro directo
+
     public static String fromValue(String value) {
         if (value == null || value.isBlank()) {
             return null;
         }
         try {
-            SearchType type = SearchType.valueOf(value.toUpperCase());
-            return type.toNewPipeFilter();
+            return SearchType.valueOf(value.toUpperCase()).toNewPipeFilter();
         } catch (IllegalArgumentException e) {
             return null;
         }
     }
 
-    // Limpiar query de keywords
     public static String cleanQuery(String query) {
-        String clean = query.toLowerCase();
-        for (SearchType type : values()) {
-            for (String keyword : type.keywords) {
-                clean = clean.replace(keyword, "");
-            }
+        if (query == null || query.isBlank()) {
+            return "";
         }
-        return clean.trim().replaceAll("\\s+", " ");
+        Set<String> allKeywords = allKeywordsSet();
+        List<String> tokens = Arrays.stream(query.toLowerCase().trim().split("\\s+"))
+                .filter(token -> !allKeywords.contains(token))
+                .collect(Collectors.toList());
+        return String.join(" ", tokens).trim();
+    }
+
+    private static Set<String> allKeywordsSet() {
+        return Arrays.stream(values())
+                .flatMap(type -> type.keywords.stream())
+                .collect(Collectors.toSet());
     }
 
     public String toNewPipeFilter() {
         return switch (this) {
-            case SONG -> "videos";
-            case ALBUM -> "playlists";
-            case ARTIST -> "channels";
+            case SONG   -> "music_songs";
+            case ALBUM  -> "music_albums";
+            case ARTIST -> "music_artists";
         };
     }
 }

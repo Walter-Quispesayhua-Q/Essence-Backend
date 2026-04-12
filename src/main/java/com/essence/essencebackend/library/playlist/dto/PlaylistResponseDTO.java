@@ -13,8 +13,10 @@ public record PlaylistResponseDTO(
         LocalDate createdAt,
         LocalDate updatedAt,
         Integer totalSongs,
+        String type,
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
-        Long totalLikes
+        Long totalLikes,
+        Boolean isLiked
 ) {
 }

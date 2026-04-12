@@ -1,0 +1,16 @@
+spring:
+  # configuracion base de datos para produccion
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  # configuracion Hibernate para produccion
+  jpa:
+    show-sql: false
+
+# en prod confiar cabeceras si hay proxy/gateway confiable
+app:
+  security:
+    ratelimit:
+      trust-forwarded-headers: true

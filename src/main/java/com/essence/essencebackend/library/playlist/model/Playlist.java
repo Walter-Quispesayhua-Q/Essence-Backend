@@ -57,6 +57,9 @@ public class Playlist {
     @OneToMany(mappedBy = "playlist", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<PlaylistLike> playlistLikes;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", nullable = false)
+    private PlaylistType type = PlaylistType.NORMAL;
 
     @PrePersist
     public void onCreated() {

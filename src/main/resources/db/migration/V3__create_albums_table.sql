@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS albums (
     title TEXT NOT NULL,
     description TEXT,
     image_key TEXT,
-    album_url TEXT,
+    album_url TEXT UNIQUE,
     release_date DATE,
     total_streams BIGINT DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),

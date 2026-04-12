@@ -1,19 +1,20 @@
 package com.essence.essencebackend.library.playlist.service;
 
-import com.essence.essencebackend.library.playlist.dto.PlaylistRequestDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistCreateRequestDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistEditResponseDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistListResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistSimpleResponseDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistUpdateRequestDTO;
 
 public interface PlaylistService {
 
-    //create and update
-    PlaylistSimpleResponseDTO createPlaylist(PlaylistRequestDTO data, String username);
-    PlaylistSimpleResponseDTO updatePlaylist(Long id, PlaylistRequestDTO dataUpdate, String username);
+    PlaylistSimpleResponseDTO createPlaylist(PlaylistCreateRequestDTO data, String username);
+    PlaylistSimpleResponseDTO updatePlaylist(Long id, PlaylistUpdateRequestDTO dataUpdate, String username);
 
-    //get
     PlaylistResponseDTO getPlaylist(Long id, String username);
-    PlaylistSimpleResponseDTO getForUpdate(Long id, String username);
+    PlaylistEditResponseDTO getForUpdate(Long id, String username);
+    PlaylistListResponseDTO getAllPlaylists(String username);
 
-    //delete
     void deletePlaylist(Long id, String username);
 }

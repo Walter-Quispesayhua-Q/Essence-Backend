@@ -7,8 +7,10 @@ import com.essence.essencebackend.library.like.model.embedded.PlaylistLikeId;
 import com.essence.essencebackend.library.like.repository.PlaylistLikeRepository;
 import com.essence.essencebackend.library.like.service.BaseLikeService;
 import com.essence.essencebackend.library.playlist.exception.PlaylistNotFoundException;
+import com.essence.essencebackend.library.playlist.exception.PrivatePlaylistLikeException;
 import com.essence.essencebackend.library.playlist.model.Playlist;
 import com.essence.essencebackend.library.playlist.repository.PlaylistRepository;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Service;
 
@@ -56,5 +58,16 @@ public class PlaylistLikeServiceImpl extends BaseLikeService
         playlistLike.setUser(user);
         playlistLike.setPlaylist(entity);
         return playlistLike;
+    }
+
+    @Override
+    @Transactional
+    public void addLike(Long id, String username) {
+        Playlist playlist = playlistRepository.findById(id)
+                .orElseThrow(() -> new PlaylistNotFoundException(id));
+        if (!playlist.getIsPublic()) {
+            throw new PrivatePlaylistLikeException(id);
+        }
+        super.addLike(id, username);
     }
 }

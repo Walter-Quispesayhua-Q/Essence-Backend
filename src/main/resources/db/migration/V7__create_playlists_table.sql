@@ -7,5 +7,6 @@ CREATE TABLE IF NOT EXISTS playlists (
     is_public BOOLEAN DEFAULT false,
     total_likes BIGINT DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    type VARCHAR(20) NOT NULL DEFAULT 'NORMAL'
 );

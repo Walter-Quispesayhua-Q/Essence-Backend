@@ -3,6 +3,7 @@ package com.essence.essencebackend.security;
 import com.essence.essencebackend.security.jwt.JwtProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
@@ -21,8 +22,12 @@ public class TokenService {
     public String tokenGenerator(Authentication auth) {
         Instant now = Instant.now();
 
+        String subject = auth.getPrincipal() instanceof UserDetails userDetails
+                ? userDetails.getUsername()
+                : auth.getName();
+
         JwtClaimsSet claims = JwtClaimsSet.builder()
-                .subject(auth.getName())
+                .subject(subject)
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(jwtProperties.expirationSeconds()))
                 // ecope y roles

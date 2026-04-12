@@ -26,6 +26,7 @@ public class PlaybackSegmentServiceImpl implements PlaybackSegmentService {
     public void createSegmentsForSong(Song song) {
         int durationMs = song.getDurationMs();
         int segmentNumber = 1;
+        List<PlaybackSegment> segments = new ArrayList<>();
 
         for (int start = 0; start < durationMs; start += SEGMENT_DURATION_MS) {
             int end = Math.min(start + SEGMENT_DURATION_MS, durationMs);
@@ -39,8 +40,9 @@ public class PlaybackSegmentServiceImpl implements PlaybackSegmentService {
             segment.setCompleteCount(0L);
             segment.setSkipCount(0L);
 
-            playbackSegmentRepository.save(segment);
+            segments.add(segment);
         }
+        playbackSegmentRepository.saveAll(segments);
     }
 
     @Override

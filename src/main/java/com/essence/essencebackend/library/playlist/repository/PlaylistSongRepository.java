@@ -9,4 +9,5 @@ import java.util.List;
 
 public interface PlaylistSongRepository extends JpaRepository<PlaylistSong, PlaylistSongId> {
     List<PlaylistSong> findByPlaylistPlaylistId(Long playlistPlaylistId);
+    long countByPlaylistPlaylistId(Long playlistId);
 }

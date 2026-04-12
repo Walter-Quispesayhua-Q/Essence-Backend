@@ -25,8 +25,8 @@ public class NewPipeConfig {
             streamingService = NewPipe.getService(YOUTUBE);
             log.info("NewPipe inicializado: {}", streamingService.getServiceInfo().getName());
         } catch (Exception e) {
-            log.warn("NewPipe no disponible: {}", e.getMessage());
-            streamingService = null;
+            log.error("NewPipe no disponible, la aplicación no puede iniciar: {}", e.getMessage());
+            throw new RuntimeException("NewPipe no se pudo inicializar", e);
         }
     }
     @Bean

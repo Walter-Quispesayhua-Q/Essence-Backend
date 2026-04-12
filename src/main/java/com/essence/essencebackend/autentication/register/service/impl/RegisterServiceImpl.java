@@ -8,7 +8,7 @@ import com.essence.essencebackend.autentication.shared.mapper.UserMapper;
 import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.autentication.register.service.RegisterService;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,20 +25,22 @@ public class RegisterServiceImpl implements RegisterService {
 
     @Override
     public boolean getAvailableUsername(String username) {
-        log.info("Verificando si usuario esta disponible/libre: {}", username);
-        if (userRepository.existsByUsername(username)){
-            throw new DuplicateUsernameException(username);
-        }
-        return true;
+        log.info("Consulta de disponibilidad de username: {}", username);
+        return !userRepository.existsByUsername(username);
     }
 
     @Override
     @Transactional
     public RegisterResponseDTO createUser(RegisterRequestDTO data) {
-        log.info("Iniciando la creación de un usuario: {}", data);
+        log.info("Iniciando creacion de usuario. username={}", data.username());
+
+        if (userRepository.existsByUsername(data.username())) {
+            throw new DuplicateUsernameException(data.username());
+        }
         if (userRepository.existsByEmail(data.email())) {
             throw new DuplicateEmailException(data.email());
         }
+
         User user = userMapper.toEntity(data);
         user.setPasswordHash(passwordEncoder.encode(data.password()));
         userRepository.save(user);

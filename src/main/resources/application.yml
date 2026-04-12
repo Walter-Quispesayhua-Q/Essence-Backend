@@ -1,0 +1,50 @@
+# nombre de la aplicacion
+spring:
+  application:
+    name: EssenceBackend
+
+  # configuracion Hibernate
+  jpa:
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: true
+    hibernate:
+      ddl-auto: validate
+
+  # ejecutar automaticamente las migraciones de flyway
+  flyway:
+    enabled: true
+    # buenas practicas: definir explicitamente la ubicacion
+    locations: classpath:db/migration
+
+# ip wifi para pruebas
+server:
+  address: 0.0.0.0
+  port: 8099
+
+# spring security (jwt localmente)
+application:
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET_B64}
+      expiration-seconds: 2592000
+
+# nivel de logs
+logging:
+  level:
+    org.flywaydb: INFO
+
+# seguridad rate limit
+app:
+  security:
+    ratelimit:
+      trust-forwarded-headers: false
+
+# kiosks de trending para extractor
+extractor:
+  youtube:
+    kiosk:
+      songs: trending_music
+      albums: New releases
+      artists: Trending

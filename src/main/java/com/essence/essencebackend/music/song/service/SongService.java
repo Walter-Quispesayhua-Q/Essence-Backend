@@ -6,7 +6,13 @@ import com.essence.essencebackend.music.song.model.Song;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 
 public interface SongService {
-    SongResponseDTO getSongId(String songUrlOrId);
+    SongResponseDTO getSongId(String songUrlOrId, String username, boolean forceRefresh);
+
+    default SongResponseDTO getSongId(String songUrlOrId, String username) {
+        return getSongId(songUrlOrId, username, false);
+    }
+
+    Song getOrCreateSong(String songUrlOrId);
 
     Song getOrCreateSongFromAlbum(StreamInfoItem item, Album album);
 }

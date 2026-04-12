@@ -7,6 +7,8 @@ import com.essence.essencebackend.music.album.dto.AlbumResponseSimpleDTO;
 import com.essence.essencebackend.music.artist.dto.ArtistResponseSimpleDTO;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -21,10 +23,10 @@ public class HomeController {
     private final MetadataExtractorTrendingService metadataExtractorTrendingService;
 
     @GetMapping
-    public HomeResponseDTO getHome() {
+    public ResponseEntity<HomeResponseDTO> getHome() {
 
-        List<SongResponseSimpleDTO> songs = List.of();
-        List<AlbumResponseSimpleDTO> albums = List.of();
+        List<SongResponseSimpleDTO>   songs   = List.of();
+        List<AlbumResponseSimpleDTO>  albums  = List.of();
         List<ArtistResponseSimpleDTO> artists = List.of();
 
         boolean songsOk = true, albumsOk = true, artistsOk = true;
@@ -47,9 +49,21 @@ public class HomeController {
             artistsOk = false;
         }
 
-        return new HomeResponseDTO(
+        boolean allFailed = !songsOk && !albumsOk && !artistsOk;
+
+        String errorMessage = allFailed
+                ? "No se pudo cargar el contenido principal. Intente nuevamente."
+                : null;
+
+        HomeResponseDTO response = new HomeResponseDTO(
                 songs, albums, artists,
-                new HomeStatusDTO(songsOk, albumsOk, artistsOk, null)
+                new HomeStatusDTO(songsOk, albumsOk, artistsOk, errorMessage)
         );
+
+        if (allFailed) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(response);
+        }
+
+        return ResponseEntity.ok(response);
     }
 }

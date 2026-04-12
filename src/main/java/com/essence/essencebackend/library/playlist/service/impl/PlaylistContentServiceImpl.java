@@ -4,7 +4,8 @@ import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.library.playlist.exception.PlaylistNotFoundException;
 import com.essence.essencebackend.library.playlist.exception.SongAlreadyInPlaylistException;
-import com.essence.essencebackend.library.playlist.exception.UserNotFoundForUsernameException;
+import com.essence.essencebackend.library.playlist.exception.SongNotInPlaylistException;
+import com.essence.essencebackend.autentication.shared.exception.UserNotFoundForUsernameException;
 import com.essence.essencebackend.library.playlist.model.Playlist;
 import com.essence.essencebackend.library.playlist.model.PlaylistSong;
 import com.essence.essencebackend.library.playlist.model.embedded.PlaylistSongId;
@@ -12,11 +13,10 @@ import com.essence.essencebackend.library.playlist.repository.PlaylistRepository
 import com.essence.essencebackend.library.playlist.repository.PlaylistSongRepository;
 import com.essence.essencebackend.library.playlist.service.PlaylistContentService;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
-import com.essence.essencebackend.music.song.exception.SongNotFoundException;
 import com.essence.essencebackend.music.song.mapper.SongMapper;
 import com.essence.essencebackend.music.song.model.Song;
-import com.essence.essencebackend.music.song.repository.SongRepository;
-import jakarta.transaction.Transactional;
+import com.essence.essencebackend.music.song.service.SongService;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -33,27 +33,35 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
     private final PlaylistRepository playlistRepository;
     private final UserRepository userRepository;
     private final SongMapper songMapper;
-    private final SongRepository songRepository;
+    private final SongService songService;
 
     @Override
     @Transactional
-    public boolean addSongToPlaylist(Long playlistId, Long songId, String username) {
-        log.info("Agregando canción con el UrlId: {} , a la playlists con el UrlId: {} , por el usuario: {}" , songId, playlistId, username);
+    public boolean addSongToPlaylist(Long playlistId, String songKey, String username) {
+        log.info("Agregando canción con key: {} , a la playlist: {} , por el usuario: {}" , songKey, playlistId, username);
 
-        PlaylistSongContext context = getContext(username, playlistId, songId);
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UserNotFoundForUsernameException(username)
+        );
 
-        PlaylistSongId playlistSongId = new PlaylistSongId(playlistId, songId);
+        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(playlistId, user).orElseThrow(
+                () -> new PlaylistNotFoundException(playlistId)
+        );
+
+        Song song = songService.getOrCreateSong(songKey);
+
+        PlaylistSongId playlistSongId = new PlaylistSongId(playlistId, song.getId());
 
         if (playlistSongRepository.existsById(playlistSongId)) {
-            throw new SongAlreadyInPlaylistException(songId, playlistId);
+            throw new SongAlreadyInPlaylistException(song.getId(), playlistId);
         }
 
         PlaylistSong playlistSong = new PlaylistSong();
         playlistSong.setId(playlistSongId);
-        playlistSong.setPlaylist(context.playlist);
-        playlistSong.setSong(context.song);
+        playlistSong.setPlaylist(playlist);
+        playlistSong.setSong(song);
         playlistSong.setAddedAt(Instant.now());
-        playlistSong.setSongOrder(context.playlist.getPlaylistSongs().size() + 1);
+        playlistSong.setSongOrder((int) playlistSongRepository.countByPlaylistPlaylistId(playlistId) + 1);
 
         playlistSongRepository.save(playlistSong);
 
@@ -65,12 +73,18 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
     public void deleteSongToPlaylist(Long playlistId, Long songId, String username) {
         log.info("Eliminando canción con el UrlId: {} , de la playlists con el UrlId: {} , por el usuario: {}" , songId, playlistId, username);
 
-        getContext(username, playlistId, songId);
+        User user = userRepository.findByUsername(username).orElseThrow(
+                () -> new UserNotFoundForUsernameException(username)
+        );
+
+        playlistRepository.findByPlaylistIdAndUser(playlistId, user).orElseThrow(
+                () -> new PlaylistNotFoundException(playlistId)
+        );
 
         PlaylistSongId playlistSongId = new PlaylistSongId(playlistId, songId);
 
         PlaylistSong playlistSong = playlistSongRepository.findById(playlistSongId).orElseThrow(
-                () -> new RuntimeException("No se encontró la cancion en la playlist")
+                () -> new SongNotInPlaylistException(songId, playlistId)
         );
 
         playlistSongRepository.delete(playlistSong);
@@ -84,7 +98,7 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
                 () -> new UserNotFoundForUsernameException(username)
         );
 
-        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(id, user).orElseThrow(
+        Playlist playlist = playlistRepository.findAccessiblePlaylist(id, user).orElseThrow(
                 () -> new PlaylistNotFoundException(id)
         );
 
@@ -96,23 +110,5 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
                         .toList()
         );
     }
-
-    private record PlaylistSongContext(Playlist playlist, Song song){}
-
-    private PlaylistSongContext getContext(String username, Long playlistId, Long songId) {
-
-        User user = userRepository.findByUsername(username).orElseThrow(
-                () -> new UserNotFoundForUsernameException(username)
-        );
-
-        Playlist playlist = playlistRepository.findByPlaylistIdAndUser(playlistId, user).orElseThrow(
-                () -> new PlaylistNotFoundException(playlistId)
-        );
-
-        Song song = songRepository.findById(songId).orElseThrow(
-                () -> new SongNotFoundException(songId)
-        );
-
-        return new PlaylistSongContext(playlist, song);
-    }
 }
+

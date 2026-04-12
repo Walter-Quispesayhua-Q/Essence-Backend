@@ -13,6 +13,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @Embeddable
 public class SongArtistId implements Serializable {
+    private static final long serialVersionUID = 1L;
     @Column(name = "song_id")
     private Long songId;
 

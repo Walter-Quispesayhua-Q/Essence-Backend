@@ -1,5 +1,6 @@
 package com.essence.essencebackend.music.shared.service;
 
+import com.essence.essencebackend.music.shared.model.ContentType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -37,5 +38,4 @@ public class UrlExtractor {
         }
         return url;
     }
-    public enum ContentType { SONG, ALBUM, ARTIST }
 }

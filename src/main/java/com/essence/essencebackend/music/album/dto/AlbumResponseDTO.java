@@ -14,6 +14,7 @@ public record AlbumResponseDTO(
         LocalDate releaseDate,
 
         List<ArtistResponseSimpleDTO> artists,
-        List<SongResponseSimpleDTO> songs
+        List<SongResponseSimpleDTO> songs,
+        Boolean isLiked
 ) {
 }

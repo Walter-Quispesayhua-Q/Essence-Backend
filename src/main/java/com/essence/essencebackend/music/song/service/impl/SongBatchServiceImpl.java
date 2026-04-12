@@ -14,6 +14,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -21,8 +23,10 @@ public class SongBatchServiceImpl implements SongBatchService {
 
     private final SongService songService;
     private final SongRepository songRepository;
-
     private final ExecutorService executor;
+
+    private static final Semaphore NEWPIPE_SEMAPHORE = new Semaphore(3);
+    private static final long DELAY_BETWEEN_REQUESTS_MS = 400;
 
     public SongBatchServiceImpl(
             SongService songService,
@@ -38,7 +42,7 @@ public class SongBatchServiceImpl implements SongBatchService {
     public List<Song> saveSongsFromAlbum(Album album, List<StreamInfoItem> songItems) {
         List<CompletableFuture<Song>> futures = songItems.stream()
                 .map(item -> CompletableFuture.supplyAsync(
-                        () -> songService.getOrCreateSongFromAlbum(item, album),
+                        () -> fetchWithRateLimit(item, album),
                         executor
                 ).exceptionally(ex -> {
                     log.warn("Video no disponible: {} - {}", item.getName(), ex.getMessage());
@@ -54,5 +58,25 @@ public class SongBatchServiceImpl implements SongBatchService {
             return List.of();
         }
         return songRepository.findAllByIdWithArtists(songIds);
+    }
+
+    private Song fetchWithRateLimit(StreamInfoItem item, Album album) {
+        try {
+            if (!NEWPIPE_SEMAPHORE.tryAcquire(30, TimeUnit.SECONDS)) {
+                log.warn("Timeout esperando permiso para: {}", item.getName());
+                return null;
+            }
+            try {
+                Song result = songService.getOrCreateSongFromAlbum(item, album);
+                Thread.sleep(DELAY_BETWEEN_REQUESTS_MS);
+                return result;
+            } finally {
+                NEWPIPE_SEMAPHORE.release();
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("Interrumpido mientras esperaba: {}", item.getName());
+            return null;
+        }
     }
 }

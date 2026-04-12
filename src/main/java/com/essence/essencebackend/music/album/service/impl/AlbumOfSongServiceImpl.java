@@ -6,11 +6,13 @@ import com.essence.essencebackend.music.album.model.AlbumArtist;
 import com.essence.essencebackend.music.album.repository.AlbumRepository;
 import com.essence.essencebackend.music.album.service.AlbumOfSongService;
 import com.essence.essencebackend.music.artist.model.Artist;
+import com.essence.essencebackend.music.shared.model.ContentType;
 import com.essence.essencebackend.music.shared.model.embedded.AlbumArtistId;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -36,7 +38,7 @@ public class AlbumOfSongServiceImpl implements AlbumOfSongService {
 
         if (albumUrl == null) return null;
 
-        String albumUrlId = urlExtractor.extractId(albumUrl, UrlExtractor.ContentType.ALBUM);
+        String albumUrlId = urlExtractor.extractId(albumUrl, ContentType.ALBUM);
 
         Optional<Album> albumExist = albumRepository.findByAlbumUrl(albumUrlId);
         if (albumExist.isPresent()) {
@@ -45,6 +47,7 @@ public class AlbumOfSongServiceImpl implements AlbumOfSongService {
 
         try {
             PlaylistInfo albumInfo = searchAlbumService.getAlbumInfoByUrl(albumUrl);
+            if (albumInfo == null) return null;
             Album album = albumMapperByInfo.mapToAlbum(albumInfo);
             Album savedAlbum = albumRepository.save(album);
 
@@ -62,8 +65,11 @@ public class AlbumOfSongServiceImpl implements AlbumOfSongService {
             savedAlbum.setAlbumArtists(albumArtists);
 
             return albumRepository.save(savedAlbum);
+        } catch (DataIntegrityViolationException e) {
+            log.info("Álbum ya creado por otro request concurrente, re-fetching: {}", albumUrlId);
+            return albumRepository.findByAlbumUrl(albumUrlId).orElse(null);
         } catch (Exception e) {
-            log.error("Error al guardar nuevo álbum: {}", e.getMessage());
+            log.error("Error al guardar nuevo álbum: {}", e.getMessage(), e);
             return null;
         }
     }

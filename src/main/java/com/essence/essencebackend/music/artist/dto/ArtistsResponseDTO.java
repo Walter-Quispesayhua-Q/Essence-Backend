@@ -15,6 +15,7 @@ public record ArtistsResponseDTO(
         String country,
 
         List<AlbumResponseSimpleDTO> albums,
-        List<SongResponseSimpleDTO> songs
+        List<SongResponseSimpleDTO> songs,
+        Boolean isLiked
 ) {
 }

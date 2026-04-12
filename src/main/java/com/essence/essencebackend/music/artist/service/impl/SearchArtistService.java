@@ -29,11 +29,13 @@ public class SearchArtistService {
                             ""
                     )
             );
-            if (!search.getRelatedItems().isEmpty()) {
-                return (ChannelInfoItem) search.getRelatedItems().get(0);
-            }
+            return search.getRelatedItems().stream()
+                    .filter(ChannelInfoItem.class::isInstance)
+                    .map(ChannelInfoItem.class::cast)
+                    .findFirst()
+                    .orElse(null);
         } catch (Exception e) {
-            log.error("Error buscando artista: {}", e.getMessage());
+            log.error("Error buscando artista: {}", e.getMessage(), e);
         }
 
         return null;

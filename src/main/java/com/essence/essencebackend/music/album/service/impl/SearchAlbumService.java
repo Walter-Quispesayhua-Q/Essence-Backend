@@ -36,11 +36,13 @@ public class SearchAlbumService {
                     }
                 }
             }
-            if (!albumSearch.getRelatedItems().isEmpty()) {
-                return (PlaylistInfoItem) albumSearch.getRelatedItems().get(0);
-            }
+            return albumSearch.getRelatedItems().stream()
+                    .filter(PlaylistInfoItem.class::isInstance)
+                    .map(PlaylistInfoItem.class::cast)
+                    .findFirst()
+                    .orElse(null);
         } catch (Exception e) {
-            log.error("Error buscando álbum: {}", e.getMessage());
+            log.error("Error buscando álbum: {}", e.getMessage(), e);
         }
         return null;
     }
@@ -54,7 +56,7 @@ public class SearchAlbumService {
         try {
             return PlaylistInfo.getInfo(streamingService.get(), albumUrl);
         } catch (Exception e) {
-            log.error("Error obteniendo álbum por URL: {}", e.getMessage());
+            log.error("Error obteniendo álbum por URL: {}", e.getMessage(), e);
             return null;
         }
     }

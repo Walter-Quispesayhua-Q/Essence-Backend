@@ -18,6 +18,8 @@ public record SongResponseDTO(
 
         List<ArtistResponseSimpleDTO> artists,
         AlbumResponseSimpleDTO album,
-        LocalDate releaseDate
+        LocalDate releaseDate,
+        Boolean isLiked,
+        String streamingUrl
 ) {
 }

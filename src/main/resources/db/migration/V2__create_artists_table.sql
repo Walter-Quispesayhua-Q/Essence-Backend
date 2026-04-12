@@ -3,7 +3,7 @@ CREATE TABLE IF NOT EXISTS artists (
     name_artist TEXT NOT NULL,
     description TEXT,
     image_key TEXT,
-    artist_url TEXT,
+    artist_url TEXT UNIQUE,
     country VARCHAR(10),
     total_streams BIGINT DEFAULT 0,
     name_normalized TEXT,

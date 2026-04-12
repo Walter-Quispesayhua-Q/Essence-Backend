@@ -5,7 +5,7 @@ import com.essence.essencebackend.autentication.shared.repository.UserRepository
 import com.essence.essencebackend.library.like.exception.AddLikeFailedException;
 import com.essence.essencebackend.library.like.exception.DeleteLikeFailedException;
 import com.essence.essencebackend.library.like.exception.LikeNotFoundException;
-import com.essence.essencebackend.library.playlist.exception.UserNotFoundForUsernameException;
+import com.essence.essencebackend.autentication.shared.exception.UserNotFoundForUsernameException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,7 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public abstract class BaseLikeService<E, ID, LIKE, LIKE_ID> implements LikeService<ID>{
 
-    private final UserRepository userRepository;
+    protected final UserRepository userRepository;
 
     protected abstract JpaRepository<E, ID> entityRepository();
     protected abstract JpaRepository<LIKE, LIKE_ID> likeRepository();

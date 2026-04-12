@@ -1,0 +1,16 @@
+spring:
+  # configuracion base de datos para desarrollo
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/essence_data_base}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:POSTGRES}
+
+  # configuracion Hibernate para desarrollo
+  jpa:
+    show-sql: true
+
+# en dev no confiar cabeceras reenviadas salvo proxy controlado
+app:
+  security:
+    ratelimit:
+      trust-forwarded-headers: false

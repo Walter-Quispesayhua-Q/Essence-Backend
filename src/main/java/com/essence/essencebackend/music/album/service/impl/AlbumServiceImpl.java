@@ -1,5 +1,8 @@
 package com.essence.essencebackend.music.album.service.impl;
 
+
+import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
+import com.essence.essencebackend.library.like.repository.AlbumLikeRepository;
 import com.essence.essencebackend.music.album.dto.AlbumResponseDTO;
 import com.essence.essencebackend.music.album.mapper.AlbumMapperByInfo;
 import com.essence.essencebackend.music.album.model.Album;
@@ -10,6 +13,7 @@ import com.essence.essencebackend.music.album.service.AlbumService;
 import com.essence.essencebackend.music.artist.mapper.ArtistMapper;
 import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.artist.service.ArtistOfSongService;
+import com.essence.essencebackend.music.shared.model.ContentType;
 import com.essence.essencebackend.music.shared.model.embedded.AlbumArtistId;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
@@ -43,16 +47,18 @@ public class AlbumServiceImpl implements AlbumService {
     private final ArtistMapper artistMapper;
     private final SongMapper songMapper;
     private final ArtistOfSongService artistOfSongService;
+    private final AlbumLikeRepository albumLikeRepository;
+
 
     @Override
     public AlbumResponseDTO getAlbumDetail(String username, String albumUrlOrId) {
         log.info("Obteniendo album por el usuario: {}", username);
 
-        String albumUrl = urlBuilder.resolveUrl(albumUrlOrId, UrlBuilder.ContentType.ALBUM);
+        String albumUrl = urlBuilder.resolveUrl(albumUrlOrId, ContentType.ALBUM);
 
         try {
             PlaylistInfo info = PlaylistInfo.getInfo(streamingService.get(), albumUrl);
-            String albumUrlId = urlExtractor.extractId(info.getUrl(), UrlExtractor.ContentType.ALBUM);
+            String albumUrlId = urlExtractor.extractId(info.getUrl(), ContentType.ALBUM);
             List<StreamInfoItem> songItems = info.getRelatedItems();
 
             Optional<Album> albumExist = albumRepository.findByAlbumUrl(albumUrlId);
@@ -65,20 +71,24 @@ public class AlbumServiceImpl implements AlbumService {
                 album = albumMapperByInfo.mapToAlbum(info);
                 album = albumRepository.save(album);
 
-                Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(
-                        info.getUploaderUrl(),
-                        info.getUploaderName()
-                );
-                saveAlbumArtists(album, artists);
+                if (info.getUploaderUrl() != null && !info.getUploaderUrl().isBlank()) {
+                    Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(
+                            info.getUploaderUrl(),
+                            info.getUploaderName()
+                    );
+                    if (artists != null && !artists.isEmpty()) {
+                        saveAlbumArtists(album, artists);
+                    }
+                }
                 log.info("Album creado: {}", album.getTitle());
             }
 
             List<Song> songs = songBatchService.saveSongsFromAlbum(album, songItems);
-            return buildAlbumResponse(album, songs);
+            return buildAlbumResponse(album, songs,username);
 
         } catch (Exception e) {
-            log.error("Error obteniendo album: {}", e.getMessage());
-            return null;
+            log.error("Error obteniendo album: {}", e.getMessage(), e);
+            throw new ExtractionServiceUnavailableException();
         }
     }
 
@@ -97,11 +107,14 @@ public class AlbumServiceImpl implements AlbumService {
         albumArtistRepository.saveAll(albumArtists);
     }
 
-    private AlbumResponseDTO buildAlbumResponse(Album album, List<Song> songs) {
-        List<AlbumArtist> albumArtistEntities = albumArtistRepository.findByAlbum(album);
+    private AlbumResponseDTO buildAlbumResponse(Album album, List<Song> songs, String username) {
+        List<AlbumArtist> albumArtistEntities = albumArtistRepository.findByAlbumWithArtists(album);
         List<Artist> artistEntities = albumArtistEntities.stream()
                 .map(AlbumArtist::getArtist)
                 .toList();
+        boolean isLiked = albumLikeRepository.existsByAlbumIdAndUsername(
+                album.getId(), username
+        );
 
         return new AlbumResponseDTO(
                 album.getId(),
@@ -110,7 +123,8 @@ public class AlbumServiceImpl implements AlbumService {
                 album.getImageKey(),
                 album.getReleaseDate(),
                 artistMapper.toListDto(artistEntities),
-                songMapper.toListDto(songs)
+                songMapper.toListDto(songs),
+                isLiked
         );
     }
 }

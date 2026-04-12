@@ -13,6 +13,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 @Embeddable
 public class PlaylistLikeId implements Serializable {
+    private static final long serialVersionUID = 1L;
     @Column(name = "playlist_id", nullable = false)
     private Long playlistId;
 

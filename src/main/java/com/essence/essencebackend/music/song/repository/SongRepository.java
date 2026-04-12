@@ -14,7 +14,7 @@ public interface SongRepository extends JpaRepository<Song, Long> {
     Optional<Song> findByHlsMasterKey(String hlsMasterKey);
 
     @Query("""
-        SELECT s FROM Song s
+        SELECT DISTINCT s FROM Song s
         LEFT JOIN FETCH s.album
         LEFT JOIN FETCH s.songArtists sa
         LEFT JOIN FETCH sa.artist

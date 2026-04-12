@@ -1,7 +1,11 @@
 package com.essence.essencebackend.music.song.exception;
 
 public class SongNotFoundException extends RuntimeException {
-    public SongNotFoundException(Long id) {
-        super("canción no encontrada con el UrlId: " + id);
+    public SongNotFoundException(String identifier) {
+        super("canción no encontrada: " + identifier);
+    }
+
+    public SongNotFoundException(Long songId) {
+        this(String.valueOf(songId));
     }
 }

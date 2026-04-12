@@ -1,0 +1,15 @@
+services:
+  # backend en perfil dev conectado a postgres del host
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: essence-backend-dev
+    environment:
+      SPRING_PROFILES_ACTIVE: dev
+      DB_URL: jdbc:postgresql://host.docker.internal:5432/essence_data_base
+      DB_USERNAME: ${DB_USERNAME:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      JWT_SECRET_B64: ${JWT_SECRET_B64}
+    ports:
+      - "8099:8099"

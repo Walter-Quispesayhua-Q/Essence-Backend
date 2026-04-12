@@ -26,10 +26,12 @@ public class SongController {
 
     @GetMapping("/{songId}")
     public ResponseEntity<SongResponseDTO> getSong(
-            @PathVariable String songId
+            @PathVariable String songId,
+            @RequestParam(defaultValue = "false") boolean forceRefresh,
+            @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.status(HttpStatus.OK).body(
-                songService.getSongId(songId)
+                songService.getSongId(songId, jwt.getSubject(), forceRefresh)
         );
     }
 

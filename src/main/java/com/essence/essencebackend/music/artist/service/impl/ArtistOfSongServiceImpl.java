@@ -1,15 +1,18 @@
 package com.essence.essencebackend.music.artist.service.impl;
 
+import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
 import com.essence.essencebackend.music.artist.mapper.ArtistMapperByInfo;
 import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.artist.repository.ArtistRepository;
 import com.essence.essencebackend.music.artist.service.ArtistOfSongService;
+import com.essence.essencebackend.music.shared.model.ContentType;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
 import org.schabi.newpipe.extractor.channel.ChannelInfo;
 import org.schabi.newpipe.extractor.channel.ChannelInfoItem;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
@@ -32,33 +35,50 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
         Set<Artist> artistsExist = new LinkedHashSet<>();
         Set<Artist> artistsForSave = new LinkedHashSet<>();
 
-        String artistaUrlId = urlExtractor.extractId(artistUrl, UrlExtractor.ContentType.ARTIST);
+        String artistaUrlId = urlExtractor.extractId(artistUrl, ContentType.ARTIST);
 
         Optional<Artist> artistExistUrl = artistRepository.findByArtistUrl(artistaUrlId);
         if (artistExistUrl.isPresent()) {
-            Artist artistExisting =  artistExistUrl.get();
+            Artist artistExisting = artistExistUrl.get();
             if (artistExisting.getDescription() == null) {
-               try {
-                   ChannelInfo info = ChannelInfo.getInfo(streamingService.get(), artistUrl);
-                   artistExisting.setDescription(info.getDescription());
-                   artistRepository.save(artistExisting);
-               } catch (Exception e) {
-                   log.error("Error al completar datos para el artista: {}", e.getMessage());
-               }
+                try {
+                    ChannelInfo info = ChannelInfo.getInfo(streamingService.get(), artistUrl);
+                    artistExisting.setDescription(info.getDescription());
+                    artistRepository.save(artistExisting);
+                } catch (Exception e) {
+                    log.error("Error al completar datos para el artista: {}", e.getMessage(), e);
+                }
             }
             artistsExist.add(artistExisting);
         } else {
             try {
-                ChannelInfo artistInfo = ChannelInfo.getInfo(
-                        streamingService.get(),
-                        artistUrl
-                );
+                ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
+                String cleanName = artistMapperByInfo.cleanArtistName(artistInfo.getName());
+                String normalized = artistMapperByInfo.normalizeForSearch(cleanName);
+                boolean isTopic = artistMapperByInfo.isTopic(artistInfo.getName());
 
-                Artist artistP = artistMapperByInfo.mapToArtist(artistInfo, artistUrl);
-                artistsForSave.add(artistP);
+                Optional<Artist> existByName = artistRepository.findFirstByNameNormalized(normalized);
+
+                if (existByName.isPresent()) {
+                    Artist existing = existByName.get();
+                    if (!isTopic) {
+                        log.info("Actualizando artista {} de Topic a Oficial", cleanName);
+                        existing.setArtistUrl(artistaUrlId);
+                        existing.setImageKey(artistInfo.getAvatars().stream()
+                                .max(Comparator.comparing(org.schabi.newpipe.extractor.Image::getHeight))
+                                .map(org.schabi.newpipe.extractor.Image::getUrl)
+                                .orElse(existing.getImageKey()));
+                        existing.setDescription(artistInfo.getDescription());
+                        artistRepository.save(existing);
+                    }
+                    artistsExist.add(existing);
+                } else {
+                    Artist artistP = artistMapperByInfo.mapToArtist(artistInfo, artistUrl);
+                    artistsForSave.add(artistP);
+                }
             } catch (Exception e) {
-                log.error("Error obteniendo artista: {}", e.getMessage());
-                return null;
+                log.error("Error obteniendo artista: {}", e.getMessage(), e);
+                throw new ExtractionServiceUnavailableException();
             }
         }
 
@@ -66,7 +86,7 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
 
         for (String name : namesSecond) {
             String normalizedArtists = artistMapperByInfo.normalizeForSearch(name);
-            Optional<Artist> artist = artistRepository.findByNameNormalized(normalizedArtists);
+            Optional<Artist> artist = artistRepository.findFirstByNameNormalized(normalizedArtists);
             if (artist.isPresent()) {
                 artistsExist.add(artist.get());
             } else {
@@ -78,12 +98,30 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
                 Artist artistSecond = artistMapperByInfo.mapToArtistFromItem(item);
                 artistsForSave.add(artistSecond);
             }
-
         }
-        artistRepository.saveAll(artistsForSave);
+
+        saveArtistsResilient(artistsForSave, artistsExist);
+
         Set<Artist> artists = new LinkedHashSet<>(artistsExist);
         artists.addAll(artistsForSave);
         return artists;
+    }
+
+    private void saveArtistsResilient(Set<Artist> artistsForSave, Set<Artist> artistsExist) {
+        if (artistsForSave.isEmpty()) return;
+
+        Set<Artist> saved = new LinkedHashSet<>();
+        for (Artist artist : artistsForSave) {
+            try {
+                saved.add(artistRepository.save(artist));
+            } catch (DataIntegrityViolationException ex) {
+                log.info("Artista ya existe, re-fetching: {}", artist.getArtistUrl());
+                artistRepository.findByArtistUrl(artist.getArtistUrl())
+                        .ifPresent(artistsExist::add);
+            }
+        }
+        artistsForSave.clear();
+        artistsForSave.addAll(saved);
     }
 
     private List<String> secondaryArtistByNames(String allArtists) {

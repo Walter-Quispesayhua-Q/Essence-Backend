@@ -9,14 +9,18 @@ import com.essence.essencebackend.autentication.shared.mapper.UserMapper;
 import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.security.TokenService;
+import com.essence.essencebackend.security.ratelimit.RateLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.stereotype.Service;
+
+import java.util.Locale;
 
 
 @RequiredArgsConstructor
@@ -29,32 +33,46 @@ public class LoginServiceImpl implements LoginService {
     private final UserMapper userMapper;
     private final JwtDecoder jwtDecoder;
     private final UserRepository userRepository;
+    private final RateLimitService rateLimitService;
 
     @Override
     public LoginTokenDTO login(LoginRequestDTO data) {
-        log.info("Iniciando autenticación para: {}", data.email());
+        String email = data.email().trim().toLowerCase(Locale.ROOT);
+        log.info("Iniciando autenticación para: {}", email);
 
-        Authentication auth = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(data.email(), data.password())
-        );
+        rateLimitService.assertLoginIdentityAllowed(email);
 
-        String token = tokenService.tokenGenerator(auth);
+        try {
+            Authentication auth = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(email, data.password())
+            );
 
-        return new LoginTokenDTO(token);
+            rateLimitService.clearLoginFailures(email);
+
+            String token = tokenService.tokenGenerator(auth);
+
+            return new LoginTokenDTO(token);
+        } catch (AuthenticationException ex) {
+            rateLimitService.recordLoginFailure(email);
+            throw ex;
+        }
     }
 
     @Override
     public LoginResponseDTO getUser(String authHeader) {
-        log.info("Obteniendo Usuario desde token");
+        log.info("Obteniendo usuario desde token");
 
-        String token = authHeader.replace("Bearer ", "");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new UserNotFound();
+        }
+        String token = authHeader.substring(7);
 
         Jwt jwt = jwtDecoder.decode(token);
 
-        String email = jwt.getSubject();
+        String username = jwt.getSubject();
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UserNotFound(email));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(UserNotFound::new);
 
         return userMapper.toLoginDTO(user);
     }

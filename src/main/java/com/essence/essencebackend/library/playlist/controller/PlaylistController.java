@@ -1,13 +1,18 @@
 package com.essence.essencebackend.library.playlist.controller;
 
-import com.essence.essencebackend.library.playlist.dto.PlaylistRequestDTO;
+import com.essence.essencebackend.library.like.service.LikeService;
+import com.essence.essencebackend.library.playlist.dto.PlaylistCreateRequestDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistEditResponseDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistListResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistResponseDTO;
 import com.essence.essencebackend.library.playlist.dto.PlaylistSimpleResponseDTO;
+import com.essence.essencebackend.library.playlist.dto.PlaylistUpdateRequestDTO;
 import com.essence.essencebackend.library.playlist.service.PlaylistContentService;
 import com.essence.essencebackend.library.playlist.service.PlaylistService;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import com.essence.essencebackend.shared.dto.ResponseApi;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -16,17 +21,26 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
-@RequiredArgsConstructor
+
 @RestController
 @RequestMapping("/api/v1/playlist")
 public class PlaylistController {
 
     private final PlaylistService playlistService;
     private final PlaylistContentService playlistContentService;
+    private final LikeService<Long> likeService;
+    public PlaylistController(
+            PlaylistService playlistService,
+            PlaylistContentService playlistContentService,
+            @Qualifier("playlistLikeServiceImpl") LikeService<Long> likeService
+    ) {
+        this.playlistService = playlistService;
+        this.playlistContentService = playlistContentService;
+        this.likeService = likeService;
+    }
 
-    // playlist crud
     @PostMapping
-    public ResponseEntity<ResponseApi<PlaylistSimpleResponseDTO>> createPlaylist(@RequestBody PlaylistRequestDTO data,
+    public ResponseEntity<ResponseApi<PlaylistSimpleResponseDTO>> createPlaylist(@RequestBody @Valid PlaylistCreateRequestDTO data,
                                                       @AuthenticationPrincipal Jwt jwt)
     {
         String username = jwt.getSubject();
@@ -36,7 +50,7 @@ public class PlaylistController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ResponseApi<PlaylistSimpleResponseDTO>> updatePlaylist(@PathVariable Long id
-            ,@RequestBody PlaylistRequestDTO dataUpdate, @AuthenticationPrincipal Jwt jwt)
+            ,@RequestBody @Valid PlaylistUpdateRequestDTO dataUpdate, @AuthenticationPrincipal Jwt jwt)
     {
         String username = jwt.getSubject();
         return ResponseEntity.status(HttpStatus.OK)
@@ -52,8 +66,17 @@ public class PlaylistController {
                 .body(playlistService.getPlaylist(id, username));
     }
 
+    @GetMapping
+    public ResponseEntity<PlaylistListResponseDTO> getAllPlaylists(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(
+                playlistService.getAllPlaylists(jwt.getSubject())
+        );
+    }
+
     @GetMapping("/{id}/edit")
-    public ResponseEntity<PlaylistSimpleResponseDTO> getForUpdate(@PathVariable Long id,
+    public ResponseEntity<PlaylistEditResponseDTO> getForUpdate(@PathVariable Long id,
                                                                   @AuthenticationPrincipal Jwt jwt)
     {
         String username = jwt.getSubject();
@@ -80,12 +103,12 @@ public class PlaylistController {
                 .body(playlistContentService.getSongForPlaylist(id, jwt.getSubject()));
     }
 
-    @PostMapping("/{id}/songs/{songId}")
-    public ResponseEntity<Boolean> addSongToPlaylist(@PathVariable Long id, @PathVariable Long songId,
+    @PostMapping("/{id}/songs/{songKey}")
+    public ResponseEntity<Boolean> addSongToPlaylist(@PathVariable Long id, @PathVariable String songKey,
                                            @AuthenticationPrincipal Jwt jwt)
     {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(playlistContentService.addSongToPlaylist(id, songId, jwt.getSubject()));
+                .body(playlistContentService.addSongToPlaylist(id, songKey, jwt.getSubject()));
     }
 
     @DeleteMapping("/{id}/songs/{songId}")
@@ -94,5 +117,22 @@ public class PlaylistController {
     {
         playlistContentService.deleteSongToPlaylist(id, songId, jwt.getSubject());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/like")
+    public ResponseEntity<Void> addLikePlaylist(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        likeService.addLike(id, jwt.getSubject());
+        return ResponseEntity.ok().build();
+    }
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<Void> deleteLikePlaylist(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        likeService.deleteLike(id, jwt.getSubject());
+        return ResponseEntity.ok().build();
     }
 }

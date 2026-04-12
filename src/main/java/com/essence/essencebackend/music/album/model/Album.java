@@ -30,7 +30,7 @@ public class Album {
     @Column(name = "image_key")
     private String imageKey;
 
-    @Column(name = "album_url")
+    @Column(name = "album_url", unique = true)
     private String albumUrl;
 
     @Column(name = "release_date")
