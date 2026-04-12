@@ -1,15 +1,16 @@
 # Contribuir a Essence Backend
 ¡Gracias por tu interés en contribuir! 🎉
+
 ## 🐛 Reportar Bugs
 Abre un [Issue](https://github.com/Walter-Quispesayhua-Q/Essence-Backend/issues)
 describiendo el problema.
 
 ## 🔧 Áreas que necesitan mejora
 - [ ] Agregar tests unitarios
-- [ ] Implementar paginación en endpoints de búsqueda
-- [ ] Mejorar manejo de errores del NewPipeExtractor
-- [ ] Implementar solución para obtener tabs de artistas y albums para el feature home
-
+- [x] Implementar paginación en endpoints de búsqueda
+- [x] Mejorar manejo de errores del NewPipeExtractor
+- [x] Implementar solución para obtener tabs de artistas y albums para el feature home
+- [ ] Corregir textos y labels de tabs
 
 ## 🚀 ¿Cómo contribuir?
 1. Fork el repositorio
