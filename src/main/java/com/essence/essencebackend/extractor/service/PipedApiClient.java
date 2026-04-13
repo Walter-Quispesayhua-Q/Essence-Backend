@@ -1,6 +1,8 @@
 package com.essence.essencebackend.extractor.service;
 
+import com.essence.essencebackend.extractor.config.InvidiousProperties;
 import com.essence.essencebackend.extractor.config.PipedProperties;
+import com.essence.essencebackend.extractor.dto.InvidiousStreamResponse;
 import com.essence.essencebackend.extractor.dto.PipedStreamResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -22,6 +24,7 @@ import java.util.Optional;
 public class PipedApiClient {
 
     private final PipedProperties pipedProperties;
+    private final InvidiousProperties invidiousProperties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private HttpClient httpClient;
 
@@ -32,23 +35,18 @@ public class PipedApiClient {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
-        List<String> instances = pipedProperties.getInstances();
-        log.info("PipedApiClient inicializado con {} instancia(s): {}",
-                instances.size(), instances);
+        log.info("PipedApiClient inicializado con {} instancia(s) Piped y {} instancia(s) Invidious",
+                pipedProperties.getInstances().size(),
+                invidiousProperties.getInstances().size());
     }
 
-    public Optional<String> getRaw(String path) {
-        if (!pipedProperties.isEnabled()) {
-            log.debug("Piped API está deshabilitado por configuración");
-            return Optional.empty();
-        }
+    private Optional<String> fetchFromInstances(List<String> instances, String path, int timeoutSeconds) {
+        Duration timeout = Duration.ofSeconds(timeoutSeconds);
 
-        Duration timeout = Duration.ofSeconds(pipedProperties.getTimeoutSeconds());
-
-        for (String instance : pipedProperties.getInstances()) {
+        for (String instance : instances) {
             try {
                 String url = instance + path;
-                log.info("Piped GET: {}", url);
+                log.info("Fetching: {}", url);
 
                 HttpRequest request = HttpRequest.newBuilder()
                         .uri(URI.create(url))
@@ -62,36 +60,60 @@ public class PipedApiClient {
                         request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() == 200) {
-                    log.info("Piped OK desde: {}", instance);
+                    log.info("OK desde: {}", instance);
                     return Optional.of(response.body());
                 }
 
-                log.warn("Piped {} respondió status {}", instance, response.statusCode());
+                log.warn("{} respondió status {}", instance, response.statusCode());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
-                log.error("Piped request interrumpido: {}", instance);
+                log.error("Request interrumpido: {}", instance);
                 return Optional.empty();
             } catch (Exception e) {
-                log.warn("Piped {} falló: {}", instance, e.getMessage());
+                log.warn("{} falló: {}", instance, e.getMessage());
             }
         }
 
-        log.error("Todas las instancias de Piped fallaron para: {}", path);
         return Optional.empty();
     }
 
-    public <T> Optional<T> get(String path, Class<T> responseType) {
-        return getRaw(path).flatMap(body -> {
+    public Optional<PipedStreamResponse> getStreamFromPiped(String videoId) {
+        if (!pipedProperties.isEnabled()) {
+            return Optional.empty();
+        }
+
+        Optional<String> raw = fetchFromInstances(
+                pipedProperties.getInstances(),
+                "/streams/" + videoId,
+                pipedProperties.getTimeoutSeconds());
+
+        return raw.flatMap(body -> {
             try {
-                return Optional.of(objectMapper.readValue(body, responseType));
+                return Optional.of(objectMapper.readValue(body, PipedStreamResponse.class));
             } catch (Exception e) {
-                log.error("Error parseando respuesta de Piped: {}", e.getMessage());
+                log.error("Error parseando respuesta Piped: {}", e.getMessage());
                 return Optional.empty();
             }
         });
     }
 
-    public Optional<PipedStreamResponse> getStreamInfo(String videoId) {
-        return get("/streams/" + videoId, PipedStreamResponse.class);
+    public Optional<InvidiousStreamResponse> getStreamFromInvidious(String videoId) {
+        if (!invidiousProperties.isEnabled()) {
+            return Optional.empty();
+        }
+
+        Optional<String> raw = fetchFromInstances(
+                invidiousProperties.getInstances(),
+                "/api/v1/videos/" + videoId + "?fields=title,videoId,author,authorId,authorUrl,lengthSeconds,viewCount,likeCount,published,videoThumbnails,adaptiveFormats",
+                invidiousProperties.getTimeoutSeconds());
+
+        return raw.flatMap(body -> {
+            try {
+                return Optional.of(objectMapper.readValue(body, InvidiousStreamResponse.class));
+            } catch (Exception e) {
+                log.error("Error parseando respuesta Invidious: {}", e.getMessage());
+                return Optional.empty();
+            }
+        });
     }
 }
