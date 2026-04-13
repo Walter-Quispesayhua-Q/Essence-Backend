@@ -15,11 +15,6 @@ import java.time.Instant;
 import java.util.Optional;
 import java.util.Set;
 
-/**
- * Servicio orquestador de Piped API.
- * Combina PipedApiClient (HTTP) + PipedStreamExtractor (parsing)
- * para crear entidades Song completas como fallback cuando NewPipe falla.
- */
 @Slf4j
 @RequiredArgsConstructor
 @Service
@@ -30,20 +25,12 @@ public class PipedApiService {
     private final ArtistOfSongService artistOfSongService;
     private final AlbumOfSongService albumOfSongService;
 
-    /**
-     * Obtiene solo la streaming URL desde Piped.
-     * Uso: refrescar URLs que expiraron.
-     */
     public Optional<String> getStreamingUrl(String videoId) {
         log.info("Piped: obteniendo streaming URL para videoId: {}", videoId);
         return pipedApiClient.getStreamInfo(videoId)
                 .flatMap(pipedStreamExtractor::extractBestAudioUrl);
     }
 
-    /**
-     * Crea una entidad Song completa con TODA la metadata desde Piped.
-     * Uso: cuando NewPipeExtractor falla al crear una canción nueva.
-     */
     public Optional<Song> createSongFromPiped(String videoId) {
         log.info("Piped: creando canción completa para videoId: {}", videoId);
 
@@ -56,11 +43,9 @@ public class PipedApiService {
         PipedStreamResponse response = responseOpt.get();
 
         try {
-            // extraer streaming URL
             String streamingUrl = pipedStreamExtractor.extractBestAudioUrl(response)
                     .orElse(null);
 
-            // obtener o crear artista
             String uploaderUrl = pipedStreamExtractor.extractUploaderUrl(response);
             String uploaderName = pipedStreamExtractor.extractUploaderName(response);
 
@@ -73,12 +58,10 @@ public class PipedApiService {
                     uploaderUrl, uploaderName);
             Artist principal = artists.iterator().next();
 
-            // obtener o crear album
             String title = pipedStreamExtractor.extractTitle(response);
             Album album = albumOfSongService.getOrCreateAlbumBySong(
                     title, principal.getNameArtist(), artists);
 
-            // construir la entidad Song
             Song song = new Song();
             song.setTitle(title);
             song.setDurationMs(pipedStreamExtractor.extractDurationMs(response));

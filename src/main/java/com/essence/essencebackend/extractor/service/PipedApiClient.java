@@ -16,18 +16,13 @@ import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
-/**
- * Cliente HTTP resiliente para comunicarse con instancias públicas de Piped.
- * Implementa retry automático entre múltiples instancias:
- * si una instancia falla, intenta la siguiente automáticamente.
- */
 @Slf4j
 @RequiredArgsConstructor
 @Component
 public class PipedApiClient {
 
     private final PipedProperties pipedProperties;
-    private final ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private HttpClient httpClient;
 
     @PostConstruct
@@ -42,10 +37,6 @@ public class PipedApiClient {
                 instances.size(), instances);
     }
 
-    /**
-     * Realiza una petición GET a Piped probando todas las instancias configuradas.
-     * Devuelve el body como String si alguna instancia responde con 200.
-     */
     public Optional<String> getRaw(String path) {
         if (!pipedProperties.isEnabled()) {
             log.debug("Piped API está deshabilitado por configuración");
@@ -89,10 +80,6 @@ public class PipedApiClient {
         return Optional.empty();
     }
 
-    /**
-     * Parsea el body JSON a una clase específica.
-     * Genérico: sirve para cualquier tipo de respuesta de Piped.
-     */
     public <T> Optional<T> get(String path, Class<T> responseType) {
         return getRaw(path).flatMap(body -> {
             try {
@@ -104,9 +91,6 @@ public class PipedApiClient {
         });
     }
 
-    /**
-     * Atajo para obtener la metadata de un stream.
-     */
     public Optional<PipedStreamResponse> getStreamInfo(String videoId) {
         return get("/streams/" + videoId, PipedStreamResponse.class);
     }
