@@ -1,7 +1,7 @@
 package com.essence.essencebackend.music.song.service.impl;
 
-
 import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
+import com.essence.essencebackend.extractor.service.PipedApiService;
 import com.essence.essencebackend.library.like.repository.SongLikeRepository;
 import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.album.service.AlbumOfSongService;
@@ -27,10 +27,10 @@ import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -46,7 +46,10 @@ public class SongServiceImpl implements SongService {
     private final SongMapperByInfo songMapperByInfo;
     private final Optional<StreamingService> streamingService;
     private final SongLikeRepository songLikeRepository;
+    private final PipedApiService pipedApiService;
 
+    private static final int MAX_STREAMING_URL_RETRIES = 3;
+    private static final int STREAMING_URL_VALIDITY_MINUTES = 45;
 
     @Override
     public SongResponseDTO getSongId(String songUrlOrId, String username, boolean forceRefresh) {
@@ -60,6 +63,7 @@ public class SongServiceImpl implements SongService {
             Song song = refreshUrlIfNeeded(existingSong.get(), forceRefresh);
             return buildResponseWithLike(song, username);
         }
+
         try {
             StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
             Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(
@@ -75,8 +79,13 @@ public class SongServiceImpl implements SongService {
                     .map(song -> buildResponseWithLike(refreshUrlIfNeeded(song, forceRefresh), username))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.error("Error obteniendo metadata de canción: {}", e.getMessage(), e);
-            throw new ExtractionServiceUnavailableException();
+            log.warn("NewPipe falló para getSongId, intentando Piped: {}", e.getMessage());
+            try {
+                return createSongViaPipedFallback(songUrlId, username);
+            } catch (Exception pipedEx) {
+                log.error("Piped también falló para getSongId: {}", pipedEx.getMessage());
+                throw new ExtractionServiceUnavailableException();
+            }
         }
     }
 
@@ -91,6 +100,7 @@ public class SongServiceImpl implements SongService {
         if (existingSong.isPresent()) {
             return refreshUrlIfNeeded(existingSong.get(), false);
         }
+
         try {
             StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
             Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(
@@ -105,8 +115,15 @@ public class SongServiceImpl implements SongService {
                     .map(song -> refreshUrlIfNeeded(song, false))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.error("Error obteniendo metadata de canción: {}", e.getMessage(), e);
-            throw new ExtractionServiceUnavailableException();
+            log.warn("NewPipe falló en getOrCreateSong, intentando Piped: {}", e.getMessage());
+            try {
+                return pipedApiService.createSongFromPiped(songUrlId)
+                        .map(this::saveSongWithArtists)
+                        .orElseThrow(ExtractionServiceUnavailableException::new);
+            } catch (Exception pipedEx) {
+                log.error("Piped también falló en getOrCreateSong: {}", pipedEx.getMessage());
+                throw new ExtractionServiceUnavailableException();
+            }
         }
     }
 
@@ -117,6 +134,7 @@ public class SongServiceImpl implements SongService {
         if (existingSong.isPresent()) {
             return refreshUrlIfNeeded(existingSong.get(), false);
         }
+
         try {
             StreamInfo info = StreamInfo.getInfo(streamingService.get(), item.getUrl());
             Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(
@@ -128,13 +146,20 @@ public class SongServiceImpl implements SongService {
                     .map(song -> refreshUrlIfNeeded(song, false))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.error("Error creando canción desde album: {}", e.getMessage(), e);
-            throw new ExtractionServiceUnavailableException();
+            log.warn("NewPipe falló en getOrCreateSongFromAlbum, intentando Piped: {}", e.getMessage());
+            try {
+                return pipedApiService.createSongFromPiped(songUrlId)
+                        .map(song -> {
+                            song.setAlbum(album);
+                            return saveSongWithArtists(song);
+                        })
+                        .orElseThrow(ExtractionServiceUnavailableException::new);
+            } catch (Exception pipedEx) {
+                log.error("Piped también falló en getOrCreateSongFromAlbum: {}", pipedEx.getMessage());
+                throw new ExtractionServiceUnavailableException();
+            }
         }
     }
-
-    private static final int MAX_STREAMING_URL_RETRIES = 3;
-    private static final int STREAMING_URL_VALIDITY_MINUTES = 45;
 
     private Song refreshUrlIfNeeded(Song song, boolean forceRefresh) {
         log.info("Verificando si url está vigente: {}", song.getHlsMasterKey());
@@ -145,8 +170,9 @@ public class SongServiceImpl implements SongService {
         log.warn("Url vencida, nula o forzada, refrescando: {}", song.getHlsMasterKey());
         String newUrl = getUrlValidWithRetry(song.getHlsMasterKey());
         if (newUrl == null || newUrl.isBlank()) {
-            log.error("No se pudo refrescar streamingUrl para: {}", song.getHlsMasterKey());
-            throw new ExtractionServiceUnavailableException();
+            log.warn("No se pudo refrescar streamingUrl para: {}", song.getHlsMasterKey());
+            song.setStreamingUrl(null);
+            return songRepository.save(song);
         }
         song.setStreamingUrl(newUrl);
         song.setLastSyncedAt(Instant.now());
@@ -162,14 +188,13 @@ public class SongServiceImpl implements SongService {
         }
         return !isUrlValid(song.getLastSyncedAt());
     }
+
     private Song createSongFromInfo(StreamInfo info, String songUrlId, Album album, Set<Artist> artists) {
         String streamingUrl = extractBestStreamingUrl(info);
-
         if (streamingUrl == null) {
             String songUrl = urlBuilder.build(songUrlId, ContentType.SONG);
             streamingUrl = retryStreamingUrlExtraction(songUrl);
         }
-
         Song song = songMapperByInfo.mapToSong(info, streamingUrl, songUrlId);
         song.setAlbum(album);
         Song savedSong = songRepository.save(song);
@@ -177,6 +202,16 @@ public class SongServiceImpl implements SongService {
         savedSong.setSongArtists(songArtists);
         return songRepository.save(savedSong);
     }
+
+    private Song saveSongWithArtists(Song song) {
+        Song savedSong = songRepository.save(song);
+        Set<Artist> artists = song.getAlbum().getAlbumArtists().stream()
+                .map(aa -> aa.getArtist())
+                .collect(Collectors.toSet());
+        savedSong.setSongArtists(createSongArtists(savedSong, artists));
+        return songRepository.save(savedSong);
+    }
+
     private List<SongArtist> createSongArtists(Song song, Set<Artist> artists) {
         List<SongArtist> songArtists = new ArrayList<>();
         int order = 0;
@@ -191,12 +226,14 @@ public class SongServiceImpl implements SongService {
         }
         return songArtists;
     }
+
     private String extractBestStreamingUrl(StreamInfo info) {
         return info.getAudioStreams().stream()
                 .max(Comparator.comparing(AudioStream::getBitrate))
                 .map(AudioStream::getUrl)
                 .orElse(null);
     }
+
     private String getUrlValid(String hlsMasterKey) {
         log.info("Obteniendo nueva url válida");
         String streamingUrlId = urlBuilder.build(hlsMasterKey, ContentType.SONG);
@@ -204,17 +241,17 @@ public class SongServiceImpl implements SongService {
             StreamInfo info = StreamInfo.getInfo(streamingService.get(), streamingUrlId);
             return extractBestStreamingUrl(info);
         } catch (Exception e) {
-            log.error("Error obteniendo streaming URL: {}", e.getMessage(), e);
-            throw new ExtractionServiceUnavailableException();
+            log.warn("NewPipe falló al refrescar URL, intentando Piped: {}", e.getMessage());
+            return pipedApiService.getStreamingUrl(hlsMasterKey).orElse(null);
         }
     }
 
     private String getUrlValidWithRetry(String hlsMasterKey) {
-        String songUrl = urlBuilder.build(hlsMasterKey, ContentType.SONG);
         String url = getUrlValid(hlsMasterKey);
         if (url != null) {
             return url;
         }
+        String songUrl = urlBuilder.build(hlsMasterKey, ContentType.SONG);
         return retryStreamingUrlExtraction(songUrl);
     }
 
@@ -229,12 +266,13 @@ public class SongServiceImpl implements SongService {
                     return retryUrl;
                 }
             } catch (Exception e) {
-                log.error("Error en reintento {} obteniendo streaming URL: {}", attempt, e.getMessage(), e);
+                log.error("Error en reintento {} obteniendo streaming URL: {}", attempt, e.getMessage());
             }
         }
         log.error("No se pudo obtener streamingUrl después de {} intentos para: {}", MAX_STREAMING_URL_RETRIES, songUrl);
         return null;
     }
+
     private boolean isUrlValid(Instant lastSynced) {
         if (lastSynced == null) {
             return false;
@@ -242,10 +280,19 @@ public class SongServiceImpl implements SongService {
         long minutesAgo = Duration.between(lastSynced, Instant.now()).toMinutes();
         return minutesAgo < STREAMING_URL_VALIDITY_MINUTES;
     }
+
     private SongResponseDTO buildResponseWithLike(Song song, String username) {
         boolean isLiked = songLikeRepository.existsBySongIdAndUsername(
-                song.getId(), username
-        );
+                song.getId(), username);
         return songMapper.toFullDto(song, isLiked);
+    }
+
+    private SongResponseDTO createSongViaPipedFallback(String songUrlId, String username) {
+        Optional<Song> pipedSong = pipedApiService.createSongFromPiped(songUrlId);
+        if (pipedSong.isEmpty()) {
+            throw new ExtractionServiceUnavailableException();
+        }
+        Song savedSong = saveSongWithArtists(pipedSong.get());
+        return buildResponseWithLike(savedSong, username);
     }
 }

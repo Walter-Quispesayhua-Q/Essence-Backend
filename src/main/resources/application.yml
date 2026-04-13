@@ -48,3 +48,13 @@ extractor:
       songs: trending_music
       albums: New releases
       artists: Trending
+
+# fallback Piped API cuando NewPipeExtractor falla (produccion)
+piped:
+  enabled: true
+  timeout-seconds: 10
+  instances:
+    - https://api.piped.private.coffee
+    - https://pipedapi.kavin.rocks
+    - https://pipedapi.r4fo.com
+    - https://pipedapi.drgns.space
