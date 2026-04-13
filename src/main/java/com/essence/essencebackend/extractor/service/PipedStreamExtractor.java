@@ -93,8 +93,26 @@ public class PipedStreamExtractor {
         return response.getAdaptiveFormats().stream()
                 .filter(f -> f.getType() != null && f.getType().startsWith("audio/"))
                 .max(Comparator.comparingInt(f -> parseBitrate(f.getBitrate())))
-                .map(InvidiousStreamResponse.AdaptiveFormat::getUrl)
+                .map(format -> buildInvidiousProxyUrl(response.getVideoId(), format.getItag()))
                 .filter(url -> url != null && !url.isBlank());
+    }
+
+    public Optional<String> extractBestAudioUrl(InvidiousStreamResponse response, String instanceUrl) {
+        if (response.getAdaptiveFormats() == null || response.getAdaptiveFormats().isEmpty()) {
+            log.warn("Invidious: no hay adaptiveFormats disponibles");
+            return Optional.empty();
+        }
+
+        return response.getAdaptiveFormats().stream()
+                .filter(f -> f.getType() != null && f.getType().startsWith("audio/"))
+                .max(Comparator.comparingInt(f -> parseBitrate(f.getBitrate())))
+                .map(format -> instanceUrl + "/latest_version?id=" + response.getVideoId()
+                        + "&itag=" + format.getItag() + "&local=true");
+    }
+
+    private String buildInvidiousProxyUrl(String videoId, String itag) {
+        return "https://inv.thepixora.com/latest_version?id=" + videoId
+                + "&itag=" + itag + "&local=true";
     }
 
     public String extractTitle(InvidiousStreamResponse response) {
