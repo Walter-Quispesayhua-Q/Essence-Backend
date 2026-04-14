@@ -4,6 +4,7 @@ package com.essence.essencebackend.music.song.dto;
 import com.essence.essencebackend.music.album.dto.AlbumResponseSimpleDTO;
 import com.essence.essencebackend.music.artist.dto.ArtistResponseSimpleDTO;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -20,6 +21,7 @@ public record SongResponseDTO(
         AlbumResponseSimpleDTO album,
         LocalDate releaseDate,
         Boolean isLiked,
-        String streamingUrl
+        String streamingUrl,
+        Instant streamingUrlExpiresAt
 ) {
 }

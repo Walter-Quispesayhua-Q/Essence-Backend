@@ -2,7 +2,9 @@ package com.essence.essencebackend.music.song.controller;
 
 import com.essence.essencebackend.library.like.service.LikeService;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
+import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
 import com.essence.essencebackend.music.song.service.SongService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +34,27 @@ public class SongController {
     ) {
         return ResponseEntity.status(HttpStatus.OK).body(
                 songService.getSongId(songId, jwt.getSubject(), forceRefresh)
+        );
+    }
+
+    @PostMapping("/sync")
+    public ResponseEntity<SongResponseDTO> syncSongFromClient(
+            @Valid @RequestBody SongSyncRequestDTO request,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                songService.syncSongFromClient(request, jwt.getSubject())
+        );
+    }
+
+    @PatchMapping("/{videoId}/streaming-url")
+    public ResponseEntity<SongResponseDTO> refreshStreamingUrl(
+            @PathVariable String videoId,
+            @RequestParam String streamingUrl,
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        return ResponseEntity.ok(
+                songService.refreshStreamingUrl(videoId, streamingUrl, jwt.getSubject())
         );
     }
 

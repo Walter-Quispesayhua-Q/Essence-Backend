@@ -8,6 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.Named;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -16,7 +17,7 @@ import java.util.List;
 @Mapper(componentModel = "spring")
 public interface SongMapper {
 
-//    para historial
+    // para historial
     @Mapping(source = "id", target = "id")
     @Mapping(source = "totalStreams", target = "totalPlays")
     @Mapping(target = "artistName", expression = "java(getPrimaryArtistName(song))")
@@ -27,15 +28,22 @@ public interface SongMapper {
     @Mapping(target = "artists", expression = "java(mapArtists(song))")
     @Mapping(source = "song.streamingUrl", target = "streamingUrl")
     @Mapping(source = "isLiked", target = "isLiked")
+    @Mapping(target = "streamingUrlExpiresAt", expression = "java(calculateUrlExpiration(song))")
     SongResponseDTO toFullDto(Song song, boolean isLiked);
 
     List<SongResponseSimpleDTO> toListDto(List<Song> toListEntity);
+
+    default Instant calculateUrlExpiration(Song song) {
+        if (song == null || song.getLastSyncedAt() == null) return null;
+        return song.getLastSyncedAt().plus(Duration.ofMinutes(300));
+    }
 
     @Named("instantToLocalDate")
     default LocalDate instantToLocalDate(Instant date) {
         if (date == null) return null;
         return LocalDate.ofInstant(date, ZoneId.systemDefault());
     }
+
     default String getPrimaryArtistName(Song song) {
         if (song == null || song.getSongArtists() == null || song.getSongArtists().isEmpty()) {
             return null;
@@ -46,6 +54,7 @@ public interface SongMapper {
                 .map(sa -> sa.getArtist().getNameArtist())
                 .orElse(song.getSongArtists().get(0).getArtist().getNameArtist());
     }
+
     default String getAlbumName(Song song) {
         if (song == null || song.getAlbum() == null) {
             return null;
@@ -66,5 +75,4 @@ public interface SongMapper {
                 ))
                 .toList();
     }
-
 }

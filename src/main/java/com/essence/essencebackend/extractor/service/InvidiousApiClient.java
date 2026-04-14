@@ -1,9 +1,7 @@
 package com.essence.essencebackend.extractor.service;
 
 import com.essence.essencebackend.extractor.config.InvidiousProperties;
-import com.essence.essencebackend.extractor.config.PipedProperties;
 import com.essence.essencebackend.extractor.dto.InvidiousStreamResponse;
-import com.essence.essencebackend.extractor.dto.PipedStreamResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -21,9 +19,8 @@ import java.util.Optional;
 @Slf4j
 @RequiredArgsConstructor
 @Component
-public class PipedApiClient {
+public class InvidiousApiClient {
 
-    private final PipedProperties pipedProperties;
     private final InvidiousProperties invidiousProperties;
     private final ObjectMapper objectMapper = new ObjectMapper();
     private HttpClient httpClient;
@@ -35,11 +32,35 @@ public class PipedApiClient {
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
 
-        log.info("PipedApiClient inicializado con {} instancia(s) Piped y {} instancia(s) Invidious",
-                pipedProperties.getInstances().size(),
+        log.info("InvidiousApiClient inicializado con {} instancia(s)",
                 invidiousProperties.getInstances().size());
     }
 
+    /** Obtener stream info de Invidious (rota entre instancias) */
+    public Optional<InvidiousStreamResponse> getStream(String videoId) {
+        if (!invidiousProperties.isEnabled()) {
+            return Optional.empty();
+        }
+
+        Optional<String> raw = fetchFromInstances(
+                invidiousProperties.getInstances(),
+                "/api/v1/videos/" + videoId
+                        + "?fields=title,videoId,author,authorId,authorUrl,"
+                        + "lengthSeconds,viewCount,likeCount,published,"
+                        + "videoThumbnails,adaptiveFormats",
+                invidiousProperties.getTimeoutSeconds());
+
+        return raw.flatMap(body -> {
+            try {
+                return Optional.of(objectMapper.readValue(body, InvidiousStreamResponse.class));
+            } catch (Exception e) {
+                log.error("Error parseando respuesta Invidious: {}", e.getMessage());
+                return Optional.empty();
+            }
+        });
+    }
+
+    /** Rota entre instancias hasta obtener respuesta 200 */
     private Optional<String> fetchFromInstances(List<String> instances, String path, int timeoutSeconds) {
         Duration timeout = Duration.ofSeconds(timeoutSeconds);
 
@@ -75,45 +96,5 @@ public class PipedApiClient {
         }
 
         return Optional.empty();
-    }
-
-    public Optional<PipedStreamResponse> getStreamFromPiped(String videoId) {
-        if (!pipedProperties.isEnabled()) {
-            return Optional.empty();
-        }
-
-        Optional<String> raw = fetchFromInstances(
-                pipedProperties.getInstances(),
-                "/streams/" + videoId,
-                pipedProperties.getTimeoutSeconds());
-
-        return raw.flatMap(body -> {
-            try {
-                return Optional.of(objectMapper.readValue(body, PipedStreamResponse.class));
-            } catch (Exception e) {
-                log.error("Error parseando respuesta Piped: {}", e.getMessage());
-                return Optional.empty();
-            }
-        });
-    }
-
-    public Optional<InvidiousStreamResponse> getStreamFromInvidious(String videoId) {
-        if (!invidiousProperties.isEnabled()) {
-            return Optional.empty();
-        }
-
-        Optional<String> raw = fetchFromInstances(
-                invidiousProperties.getInstances(),
-                "/api/v1/videos/" + videoId + "?fields=title,videoId,author,authorId,authorUrl,lengthSeconds,viewCount,likeCount,published,videoThumbnails,adaptiveFormats",
-                invidiousProperties.getTimeoutSeconds());
-
-        return raw.flatMap(body -> {
-            try {
-                return Optional.of(objectMapper.readValue(body, InvidiousStreamResponse.class));
-            } catch (Exception e) {
-                log.error("Error parseando respuesta Invidious: {}", e.getMessage());
-                return Optional.empty();
-            }
-        });
     }
 }

@@ -3,6 +3,7 @@ package com.essence.essencebackend.music.song.mapper;
 import com.essence.essencebackend.music.shared.model.ContentType;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
+import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
 import com.essence.essencebackend.music.song.model.Song;
 import com.essence.essencebackend.music.song.model.SongStatus;
 import lombok.RequiredArgsConstructor;
@@ -65,6 +66,20 @@ public class SongMapperByInfo {
         );
     }
 
+    /** Mapea desde datos del cliente */
+    public Song mapFromClientSync(SongSyncRequestDTO request) {
+        Song song = new Song();
+        song.setTitle(request.title());
+        song.setDurationMs(request.durationMs());
+        song.setHlsMasterKey(request.videoId());
+        song.setStreamingUrl(request.streamingUrl());
+        song.setImageKey(request.thumbnailUrl());
+        song.setTotalStreams(request.viewCount() != null ? request.viewCount() : 0L);
+        song.setReleaseDate(request.releaseDate());
+        song.setLastSyncedAt(Instant.now());
+        song.setStatus(SongStatus.ACTIVE);
+        return song;
+    }
 
 
 }

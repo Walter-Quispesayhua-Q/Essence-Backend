@@ -49,24 +49,11 @@ extractor:
       albums: New releases
       artists: Trending
 
-# fallback Piped API cuando NewPipeExtractor falla (produccion)
-piped:
-  enabled: true
-  timeout-seconds: 10
-  instances:
-    - https://api.piped.private.coffee
-    - https://pipedapi.kavin.rocks
-    - https://pipedapi.leptons.xyz
-    - https://pipedapi-libre.kavin.rocks
-    - https://pipedapi.adminforge.de
-    - https://piped-api.codespace.cz
-    - https://pipedapi.reallyaweso.me
-
-# fallback Invidious API (segundo fallback)
+# fallback Invidious API
 invidious:
   enabled: true
   timeout-seconds: 10
   instances:
     - https://inv.thepixora.com
     - https://inv.nadeko.net
-    - https://invidious.nerdvpn.de
+    - https://invidious.nerdvpn.de

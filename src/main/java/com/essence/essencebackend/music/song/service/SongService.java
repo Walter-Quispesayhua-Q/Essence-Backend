@@ -2,6 +2,7 @@ package com.essence.essencebackend.music.song.service;
 
 import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.song.dto.SongResponseDTO;
+import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
 import com.essence.essencebackend.music.song.model.Song;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 
@@ -15,4 +16,8 @@ public interface SongService {
     Song getOrCreateSong(String songUrlOrId);
 
     Song getOrCreateSongFromAlbum(StreamInfoItem item, Album album);
+
+//    del cliente a api
+    SongResponseDTO syncSongFromClient(SongSyncRequestDTO request, String username);
+    SongResponseDTO refreshStreamingUrl(String videoId, String streamingUrl, String username);
 }
