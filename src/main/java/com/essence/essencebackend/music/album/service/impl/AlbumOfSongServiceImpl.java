@@ -12,7 +12,6 @@ import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.playlist.PlaylistInfo;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -34,43 +33,54 @@ public class AlbumOfSongServiceImpl implements AlbumOfSongService {
     public Album getOrCreateAlbumBySong(String songName, String artistName, Set<Artist> artists) {
         log.info("Obteniendo album para la canción: {} y artista: {}", songName, artistName);
 
-        String albumUrl = searchAlbumService.getAlbumUrl(songName, artistName);
+        List<String> candidateUrls = searchAlbumService.getAlbumCandidateUrls(songName, artistName);
 
-        if (albumUrl == null) return null;
+        if (candidateUrls.isEmpty()) return null;
 
-        String albumUrlId = urlExtractor.extractId(albumUrl, ContentType.ALBUM);
+        for (String albumUrl : candidateUrls) {
+            String albumUrlId = urlExtractor.extractId(albumUrl, ContentType.ALBUM);
 
-        Optional<Album> albumExist = albumRepository.findByAlbumUrl(albumUrlId);
-        if (albumExist.isPresent()) {
-            return albumExist.get();
-        }
-
-        try {
-            PlaylistInfo albumInfo = searchAlbumService.getAlbumInfoByUrl(albumUrl);
-            if (albumInfo == null) return null;
-            Album album = albumMapperByInfo.mapToAlbum(albumInfo);
-            Album savedAlbum = albumRepository.save(album);
-
-            List<AlbumArtist> albumArtists = new ArrayList<>();
-            int order = 0;
-            for (Artist artist : artists) {
-                AlbumArtist aa = new AlbumArtist();
-                aa.setId(new AlbumArtistId(savedAlbum.getId(), artist.getId()));
-                aa.setAlbum(savedAlbum);
-                aa.setArtist(artist);
-                aa.setIsPrimary(order == 0);
-                aa.setArtistOrder(order++);
-                albumArtists.add(aa);
+            Optional<Album> albumExist = albumRepository.findByAlbumUrl(albumUrlId);
+            if (albumExist.isPresent()) {
+                return albumExist.get();
             }
-            savedAlbum.setAlbumArtists(albumArtists);
 
-            return albumRepository.save(savedAlbum);
-        } catch (DataIntegrityViolationException e) {
-            log.info("Álbum ya creado por otro request concurrente, re-fetching: {}", albumUrlId);
-            return albumRepository.findByAlbumUrl(albumUrlId).orElse(null);
-        } catch (Exception e) {
-            log.error("Error al guardar nuevo álbum: {}", e.getMessage(), e);
-            return null;
+            try {
+                PlaylistInfo albumInfo = searchAlbumService.getAlbumInfoByUrl(albumUrl);
+                if (albumInfo == null) continue;
+
+                if (!searchAlbumService.albumContainsSong(albumInfo, songName)) {
+                    log.info("Album '{}' no contiene '{}', probando siguiente candidato",
+                            albumInfo.getName(), songName);
+                    continue;
+                }
+
+                log.info("Album correcto encontrado: '{}' contiene '{}'",
+                        albumInfo.getName(), songName);
+
+                Album album = albumMapperByInfo.mapToAlbum(albumInfo);
+                Album savedAlbum = albumRepository.save(album);
+
+                List<AlbumArtist> albumArtists = new ArrayList<>();
+                int order = 0;
+                for (Artist artist : artists) {
+                    AlbumArtist aa = new AlbumArtist();
+                    aa.setId(new AlbumArtistId(savedAlbum.getId(), artist.getId()));
+                    aa.setAlbum(savedAlbum);
+                    aa.setArtist(artist);
+                    aa.setIsPrimary(order == 0);
+                    aa.setArtistOrder(order++);
+                    albumArtists.add(aa);
+                }
+                savedAlbum.setAlbumArtists(albumArtists);
+
+                return albumRepository.save(savedAlbum);
+            } catch (Exception e) {
+                log.error("Error con candidato '{}': {}", albumUrl, e.getMessage(), e);
+            }
         }
+
+        log.info("Ningún album candidato contiene la canción '{}'", songName);
+        return null;
     }
 }

@@ -51,6 +51,7 @@ public class SongServiceImpl implements SongService {
 
     private static final int MAX_STREAMING_URL_RETRIES = 3;
     private static final int STREAMING_URL_VALIDITY_MINUTES = 300;
+    private static final int ALBUM_SEARCH_RETRY_DAYS = 7;
 
     private record ArtistAlbumResult(Set<Artist> artists, Album album) {}
 
@@ -150,7 +151,8 @@ public class SongServiceImpl implements SongService {
 
         Optional<Song> existing = findExistingByUrlId(request.videoId());
         if (existing.isPresent()) {
-            Song song = refreshUrlFromClient(existing.get(), request.streamingUrl());
+            Song song = existing.get();
+            tryAssignAlbumIfMissing(song, request.title(), request.uploaderUrl(), request.uploaderName());
             return buildResponseWithLike(song, username);
         }
 
@@ -160,6 +162,7 @@ public class SongServiceImpl implements SongService {
 
             Song song = songMapperByInfo.mapFromClientSync(request);
             song.setAlbum(result.album());
+            song.setAlbumSearchedAt(Instant.now());
 
             Song savedSong = persistSongWithArtists(song, result.artists());
             log.info("Song creada desde cliente: '{}' - {}", request.title(), request.videoId());
@@ -202,6 +205,36 @@ public class SongServiceImpl implements SongService {
         Album album = albumOfSongService.getOrCreateAlbumBySong(
                 songTitle, principal.getNameArtist(), artists);
         return new ArtistAlbumResult(artists, album);
+    }
+
+    private void tryAssignAlbumIfMissing(Song song, String songTitle, String uploaderUrl, String uploaderName) {
+        if (song.getAlbum() != null) return;
+        if (!shouldRetryAlbumSearch(song)) return;
+
+        log.info("Reintentando búsqueda de album para: '{}'", songTitle);
+        try {
+            Set<Artist> artists = artistOfSongService.getOrCreateArtistBySong(uploaderUrl, uploaderName);
+            Artist principal = artists.iterator().next();
+            Album album = albumOfSongService.getOrCreateAlbumBySong(
+                    songTitle, principal.getNameArtist(), artists);
+
+            song.setAlbumSearchedAt(Instant.now());
+            if (album != null) {
+                song.setAlbum(album);
+                log.info("Album asignado en reintento: '{}'", album.getTitle());
+            } else {
+                log.info("Album no encontrado en reintento para: '{}'", songTitle);
+            }
+            songRepository.save(song);
+        } catch (Exception e) {
+            log.error("Error reintentando album para '{}': {}", songTitle, e.getMessage());
+        }
+    }
+
+    private boolean shouldRetryAlbumSearch(Song song) {
+        if (song.getAlbumSearchedAt() == null) return true;
+        return song.getAlbumSearchedAt()
+                .isBefore(Instant.now().minus(Duration.ofDays(ALBUM_SEARCH_RETRY_DAYS)));
     }
 
     private Song persistSongWithArtists(Song song, Set<Artist> artists) {
@@ -255,14 +288,8 @@ public class SongServiceImpl implements SongService {
         return buildResponseWithLike(savedSong, username);
     }
 
-    private Song refreshUrlFromClient(Song song, String clientStreamingUrl) {
-        if (clientStreamingUrl != null && !clientStreamingUrl.isBlank()) {
-            song.setStreamingUrl(clientStreamingUrl);
-            song.setLastSyncedAt(Instant.now());
-            return songRepository.save(song);
-        }
-        return refreshUrlIfNeeded(song, false);
-    }
+
+
 
     private Song refreshUrlIfNeeded(Song song, boolean forceRefresh) {
         log.info("Verificando si url está vigente: {}", song.getHlsMasterKey());

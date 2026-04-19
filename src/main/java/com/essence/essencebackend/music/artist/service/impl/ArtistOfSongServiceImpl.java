@@ -51,17 +51,19 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
             }
             artistsExist.add(artistExisting);
         } else {
-            try {
-                ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
-                String cleanName = artistMapperByInfo.cleanArtistName(artistInfo.getName());
-                String normalized = artistMapperByInfo.normalizeForSearch(cleanName);
-                boolean isTopic = artistMapperByInfo.isTopic(artistInfo.getName());
+            String cleanName = artistMapperByInfo.cleanArtistName(artistsNames.split(" y | & |, ")[0].trim());
+            String normalized = artistMapperByInfo.normalizeForSearch(cleanName);
+            boolean isTopic = artistMapperByInfo.isTopic(artistsNames.split(" y | & |, ")[0].trim());
 
-                Optional<Artist> existByName = artistRepository.findFirstByNameNormalized(normalized);
+            Optional<Artist> existByName = artistRepository.findFirstByNameNormalized(normalized);
 
-                if (existByName.isPresent()) {
-                    Artist existing = existByName.get();
-                    if (!isTopic) {
+            if (existByName.isPresent() && isTopic) {
+                artistsExist.add(existByName.get());
+            } else if (existByName.isPresent() && !isTopic) {
+                Artist existing = existByName.get();
+                if (existing.getArtistUrl() == null || !existing.getArtistUrl().equals(artistaUrlId)) {
+                    try {
+                        ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
                         log.info("Actualizando artista {} de Topic a Oficial", cleanName);
                         existing.setArtistUrl(artistaUrlId);
                         existing.setImageKey(artistInfo.getAvatars().stream()
@@ -70,15 +72,20 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
                                 .orElse(existing.getImageKey()));
                         existing.setDescription(artistInfo.getDescription());
                         artistRepository.save(existing);
+                    } catch (Exception e) {
+                        log.error("Error al promover artista a Oficial: {}", e.getMessage(), e);
                     }
-                    artistsExist.add(existing);
-                } else {
+                }
+                artistsExist.add(existing);
+            } else {
+                try {
+                    ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
                     Artist artistP = artistMapperByInfo.mapToArtist(artistInfo, artistUrl);
                     artistsForSave.add(artistP);
+                } catch (Exception e) {
+                    log.error("Error obteniendo artista: {}", e.getMessage(), e);
+                    throw new ExtractionServiceUnavailableException();
                 }
-            } catch (Exception e) {
-                log.error("Error obteniendo artista: {}", e.getMessage(), e);
-                throw new ExtractionServiceUnavailableException();
             }
         }
 

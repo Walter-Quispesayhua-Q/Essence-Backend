@@ -1,6 +1,5 @@
 package com.essence.essencebackend.music.album.service.impl;
 
-
 import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
 import com.essence.essencebackend.library.like.repository.AlbumLikeRepository;
 import com.essence.essencebackend.music.album.dto.AlbumResponseDTO;
@@ -17,9 +16,8 @@ import com.essence.essencebackend.music.shared.model.ContentType;
 import com.essence.essencebackend.music.shared.model.embedded.AlbumArtistId;
 import com.essence.essencebackend.music.shared.service.UrlBuilder;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
-import com.essence.essencebackend.music.song.mapper.SongMapper;
-import com.essence.essencebackend.music.song.model.Song;
-import com.essence.essencebackend.music.song.service.SongBatchService;
+import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
+import com.essence.essencebackend.music.song.mapper.SongMapperByInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
@@ -42,10 +40,9 @@ public class AlbumServiceImpl implements AlbumService {
     private final Optional<StreamingService> streamingService;
     private final AlbumRepository albumRepository;
     private final AlbumMapperByInfo albumMapperByInfo;
-    private final SongBatchService songBatchService;
     private final AlbumArtistRepository albumArtistRepository;
     private final ArtistMapper artistMapper;
-    private final SongMapper songMapper;
+    private final SongMapperByInfo songMapperByInfo;
     private final ArtistOfSongService artistOfSongService;
     private final AlbumLikeRepository albumLikeRepository;
 
@@ -83,8 +80,11 @@ public class AlbumServiceImpl implements AlbumService {
                 log.info("Album creado: {}", album.getTitle());
             }
 
-            List<Song> songs = songBatchService.saveSongsFromAlbum(album, songItems);
-            return buildAlbumResponse(album, songs,username);
+            List<SongResponseSimpleDTO> songs = songItems.stream()
+                    .map(songMapperByInfo::mapFromItem)
+                    .toList();
+
+            return buildAlbumResponse(album, songs, username);
 
         } catch (Exception e) {
             log.error("Error obteniendo album: {}", e.getMessage(), e);
@@ -107,7 +107,7 @@ public class AlbumServiceImpl implements AlbumService {
         albumArtistRepository.saveAll(albumArtists);
     }
 
-    private AlbumResponseDTO buildAlbumResponse(Album album, List<Song> songs, String username) {
+    private AlbumResponseDTO buildAlbumResponse(Album album, List<SongResponseSimpleDTO> songs, String username) {
         List<AlbumArtist> albumArtistEntities = albumArtistRepository.findByAlbumWithArtists(album);
         List<Artist> artistEntities = albumArtistEntities.stream()
                 .map(AlbumArtist::getArtist)
@@ -123,7 +123,7 @@ public class AlbumServiceImpl implements AlbumService {
                 album.getImageKey(),
                 album.getReleaseDate(),
                 artistMapper.toListDto(artistEntities),
-                songMapper.toListDto(songs),
+                songs,
                 isLiked
         );
     }

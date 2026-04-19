@@ -73,6 +73,9 @@ public class Song {
     @Column(name = "sync_version")
     private Integer syncVersion = 1;
 
+    @Column(name = "album_searched_at")
+    private Instant albumSearchedAt;
+
     @PrePersist
     public void onCreate() {
         Instant now = Instant.now();

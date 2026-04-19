@@ -13,22 +13,29 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(assignableTypes = RegisterController.class)
 public class RegisterAdvice {
 
-    private static final String CONFLICT_TITLE  = "Datos en uso";
-    private static final String CONFLICT_DETAIL = "El nombre de usuario o correo ya esta siendo utilizado.";
-
-    @ExceptionHandler({DuplicateEmailException.class, DuplicateUsernameException.class})
-    public ProblemDetail duplicateCredential(RuntimeException ex) {
+    @ExceptionHandler(DuplicateEmailException.class)
+    public ProblemDetail duplicateEmail(DuplicateEmailException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
-        pd.setTitle(CONFLICT_TITLE);
-        pd.setDetail(CONFLICT_DETAIL);
+        pd.setTitle("Email en uso");
+        pd.setDetail("El correo electrónico ya está registrado.");
+        pd.setProperty("field", "email");
+        return pd;
+    }
+
+    @ExceptionHandler(DuplicateUsernameException.class)
+    public ProblemDetail duplicateUsername(DuplicateUsernameException ex) {
+        ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
+        pd.setTitle("Username en uso");
+        pd.setDetail("El nombre de usuario ya está siendo utilizado.");
+        pd.setProperty("field", "username");
         return pd;
     }
 
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ProblemDetail integrityViolation(DataIntegrityViolationException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.CONFLICT);
-        pd.setTitle(CONFLICT_TITLE);
-        pd.setDetail(CONFLICT_DETAIL);
+        pd.setTitle("Datos en uso");
+        pd.setDetail("El nombre de usuario o correo ya está siendo utilizado.");
         return pd;
     }
 
@@ -36,7 +43,7 @@ public class RegisterAdvice {
     public ProblemDetail registerFailed(RegisterFailedException ex) {
         ProblemDetail pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         pd.setTitle("No se pudo crear el usuario");
-        pd.setDetail("Ocurrio un error inesperado. Intente nuevamente.");
+        pd.setDetail("Ocurrió un error inesperado. Intente nuevamente.");
         return pd;
     }
 }
