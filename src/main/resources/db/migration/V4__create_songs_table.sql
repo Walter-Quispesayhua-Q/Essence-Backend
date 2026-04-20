@@ -12,7 +12,6 @@ CREATE TABLE IF NOT EXISTS songs (
     status VARCHAR(20) NOT NULL DEFAULT 'PROCESSING',
     total_plays BIGINT DEFAULT 0,
     total_streams BIGINT DEFAULT 0,
---     album_searched_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_synced_at TIMESTAMPTZ,
