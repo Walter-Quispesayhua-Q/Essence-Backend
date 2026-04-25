@@ -17,6 +17,7 @@ import com.essence.essencebackend.music.song.mapper.SongMapperByInfo;
 import com.essence.essencebackend.music.song.model.Song;
 import com.essence.essencebackend.music.song.model.SongArtist;
 import com.essence.essencebackend.music.song.repository.SongRepository;
+import com.essence.essencebackend.music.song.exception.SongNotFoundException;
 import com.essence.essencebackend.music.song.service.SongService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,29 +58,30 @@ public class SongServiceImpl implements SongService {
         log.info("Obteniendo canción por la UrlId: {}", songUrlOrId);
 
         String songUrlId = urlExtractor.resolverId(songUrlOrId, ContentType.SONG);
-        String songUrl = urlBuilder.resolveUrl(songUrlOrId, ContentType.SONG);
 
-        Optional<Song> existingSong = findExistingByUrlId(songUrlId);
-        if (existingSong.isPresent()) {
-            Song song = refreshUrlIfNeeded(existingSong.get(), forceRefresh);
-            return buildResponseWithLike(song, username);
-        }
+        Song song = findExistingByUrlId(songUrlId)
+                .orElseThrow(() -> new SongNotFoundException(songUrlId));
 
-        try {
-            StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
-            ArtistAlbumResult result = resolveArtistAndAlbum(
-                    info.getName(), info.getUploaderUrl(), info.getUploaderName());
-            Song song = createSongFromInfo(info, songUrlId, result.album(), result.artists());
-            return buildResponseWithLike(song, username);
-        } catch (DataIntegrityViolationException e) {
-            log.info("Canción ya creada por otro request concurrente: {}", songUrlId);
-            return findExistingByUrlId(songUrlId)
-                    .map(song -> buildResponseWithLike(refreshUrlIfNeeded(song, forceRefresh), username))
-                    .orElseThrow(ExtractionServiceUnavailableException::new);
-        } catch (Exception e) {
-            log.error("NewPipe falló para getSongId: {}", e.getMessage());
-            throw new ExtractionServiceUnavailableException();
-        }
+        song = refreshUrlIfNeeded(song, forceRefresh);
+        return buildResponseWithLike(song, username);
+
+        // TODO: Habilitar cuando tengamos IP dedicada — extracción NewPipe server-side
+        // String songUrl = urlBuilder.resolveUrl(songUrlOrId, ContentType.SONG);
+        // try {
+        //     StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
+        //     ArtistAlbumResult result = resolveArtistAndAlbum(
+        //             info.getName(), info.getUploaderUrl(), info.getUploaderName());
+        //     Song song = createSongFromInfo(info, songUrlId, result.album(), result.artists());
+        //     return buildResponseWithLike(song, username);
+        // } catch (DataIntegrityViolationException e) {
+        //     log.info("Canción ya creada por otro request concurrente: {}", songUrlId);
+        //     return findExistingByUrlId(songUrlId)
+        //             .map(s -> buildResponseWithLike(refreshUrlIfNeeded(s, forceRefresh), username))
+        //             .orElseThrow(ExtractionServiceUnavailableException::new);
+        // } catch (Exception e) {
+        //     log.error("NewPipe falló para getSongId: {}", e.getMessage());
+        //     throw new ExtractionServiceUnavailableException();
+        // }
     }
 
     @Override
