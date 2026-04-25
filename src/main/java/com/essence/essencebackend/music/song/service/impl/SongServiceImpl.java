@@ -1,7 +1,6 @@
 package com.essence.essencebackend.music.song.service.impl;
 
 import com.essence.essencebackend.extractor.exception.ExtractionServiceUnavailableException;
-import com.essence.essencebackend.extractor.service.InvidiousApiService;
 import com.essence.essencebackend.library.like.repository.SongLikeRepository;
 import com.essence.essencebackend.music.album.model.Album;
 import com.essence.essencebackend.music.album.service.AlbumOfSongService;
@@ -31,7 +30,6 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -47,7 +45,6 @@ public class SongServiceImpl implements SongService {
     private final SongMapperByInfo songMapperByInfo;
     private final Optional<StreamingService> streamingService;
     private final SongLikeRepository songLikeRepository;
-    private final InvidiousApiService invidiousApiService;
 
     private static final int MAX_STREAMING_URL_RETRIES = 3;
     private static final int STREAMING_URL_VALIDITY_MINUTES = 300;
@@ -80,8 +77,8 @@ public class SongServiceImpl implements SongService {
                     .map(song -> buildResponseWithLike(refreshUrlIfNeeded(song, forceRefresh), username))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.warn("NewPipe falló, intentando Invidious: {}", e.getMessage());
-            return createSongViaInvidiousFallback(songUrlId, username);
+            log.error("NewPipe falló para getSongId: {}", e.getMessage());
+            throw new ExtractionServiceUnavailableException();
         }
     }
 
@@ -108,10 +105,8 @@ public class SongServiceImpl implements SongService {
                     .map(song -> refreshUrlIfNeeded(song, false))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.warn("NewPipe falló, intentando Invidious: {}", e.getMessage());
-            return  invidiousApiService.createSong(songUrlId)
-                    .map(this::saveSongWithArtists)
-                    .orElseThrow(ExtractionServiceUnavailableException::new);
+            log.error("NewPipe falló para getOrCreateSong: {}", e.getMessage());
+            throw new ExtractionServiceUnavailableException();
         }
     }
 
@@ -135,13 +130,8 @@ public class SongServiceImpl implements SongService {
                     .map(song -> refreshUrlIfNeeded(song, false))
                     .orElseThrow(ExtractionServiceUnavailableException::new);
         } catch (Exception e) {
-            log.warn("NewPipe falló en album, intentando Invidious: {}", e.getMessage());
-            return invidiousApiService.createSong(songUrlId)
-                    .map(song -> {
-                        song.setAlbum(album);
-                        return saveSongWithArtists(song);
-                    })
-                    .orElseThrow(ExtractionServiceUnavailableException::new);
+            log.error("NewPipe falló para getOrCreateSongFromAlbum: {}", e.getMessage());
+            throw new ExtractionServiceUnavailableException();
         }
     }
 
@@ -255,15 +245,6 @@ public class SongServiceImpl implements SongService {
         return persistSongWithArtists(song, artists);
     }
 
-    private Song saveSongWithArtists(Song song) {
-        Song savedSong = songRepository.save(song);
-        Set<Artist> artists = song.getAlbum().getAlbumArtists().stream()
-                .map(aa -> aa.getArtist())
-                .collect(Collectors.toSet());
-        savedSong.setSongArtists(createSongArtists(savedSong, artists));
-        return songRepository.save(savedSong);
-    }
-
     private List<SongArtist> createSongArtists(Song song, Set<Artist> artists) {
         List<SongArtist> songArtists = new ArrayList<>();
         int order = 0;
@@ -277,15 +258,6 @@ public class SongServiceImpl implements SongService {
             songArtists.add(sa);
         }
         return songArtists;
-    }
-
-    private SongResponseDTO createSongViaInvidiousFallback(String songUrlId, String username) {
-        Optional<Song> song = invidiousApiService.createSong(songUrlId);
-        if (song.isEmpty()) {
-            throw new ExtractionServiceUnavailableException();
-        }
-        Song savedSong = saveSongWithArtists(song.get());
-        return buildResponseWithLike(savedSong, username);
     }
 
 
@@ -334,8 +306,8 @@ public class SongServiceImpl implements SongService {
             StreamInfo info = StreamInfo.getInfo(streamingService.get(), streamingUrlId);
             return extractBestStreamingUrl(info);
         } catch (Exception e) {
-            log.warn("NewPipe falló al refrescar URL, intentando Invidious: {}", e.getMessage());
-            return invidiousApiService.getStreamingUrl(hlsMasterKey).orElse(null);
+            log.warn("NewPipe falló al refrescar URL: {}", e.getMessage());
+            return null;
         }
     }
 
