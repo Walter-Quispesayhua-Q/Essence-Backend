@@ -69,6 +69,7 @@ public interface PlaylistMapper {
     @Mapping(target = "totalLikes", expression = "java(mapTotalLikes(toEntity))")
     @Mapping(target = "totalSongs", expression = "java(mapTotalSongs(toEntity))")
     @Mapping(target = "isLiked", ignore = true)
+    @Mapping(target = "isOwner", ignore = true)
     @Mapping(source = "type", target = "type", qualifiedByName = "typeToString")
     PlaylistResponseDTO toDto(Playlist toEntity);
 

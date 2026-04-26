@@ -17,6 +17,7 @@ public record PlaylistResponseDTO(
 
         @JsonInclude(JsonInclude.Include.NON_NULL)
         Long totalLikes,
-        Boolean isLiked
+        Boolean isLiked,
+        Boolean isOwner
 ) {
 }

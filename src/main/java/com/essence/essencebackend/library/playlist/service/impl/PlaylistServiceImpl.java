@@ -100,11 +100,12 @@ public class PlaylistServiceImpl implements PlaylistService {
         boolean isLiked = playlistLikeRepository.existsById_PlaylistIdAndId_UserId(
                 playlist.getPlaylistId(), user.getId()
         );
+        boolean isOwner = playlist.getUser().getId().equals(user.getId());
         return new PlaylistResponseDTO(
                 dto.id(), dto.title(), dto.description(), dto.imageKey(),
                 dto.isPublic(), dto.createdAt(), dto.updatedAt(),
                 dto.totalSongs(), dto.type(), dto.totalLikes(),
-                isLiked
+                isLiked, isOwner
         );
     }
 
