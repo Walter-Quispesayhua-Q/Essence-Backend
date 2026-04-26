@@ -172,18 +172,19 @@ public class SongServiceImpl implements SongService {
         log.info("Refresh streaming URL desde cliente: {}", videoId);
 
         Song song = findExistingByUrlId(videoId)
-                .orElseThrow(ExtractionServiceUnavailableException::new);
+                .orElseThrow(() -> new SongNotFoundException(videoId));
 
-        if (streamingUrl != null && !streamingUrl.isBlank()) {
-            song.setStreamingUrl(streamingUrl);
-            song.setLastSyncedAt(Instant.now());
-            song = songRepository.save(song);
-            log.info("StreamingUrl actualizada desde cliente: {}", videoId);
-        } else {
-            song = refreshUrlIfNeeded(song, true);
-        }
+        song.setStreamingUrl(streamingUrl);
+        song.setLastSyncedAt(Instant.now());
+        song = songRepository.save(song);
+        log.info("StreamingUrl actualizada desde cliente: {}", videoId);
 
         return buildResponseWithLike(song, username);
+
+        // TODO: Habilitar fallback server-side cuando tengamos IP dedicada
+        // if (streamingUrl == null || streamingUrl.isBlank()) {
+        //     song = refreshUrlIfNeeded(song, true);
+        // }
     }
 
     private Optional<Song> findExistingByUrlId(String urlId) {
@@ -265,22 +266,30 @@ public class SongServiceImpl implements SongService {
 
 
 
+    /**
+     * Verifica si la streaming URL está vigente.
+     * Si expiró, la limpia (null) para que el cliente la refresque vía PATCH.
+     */
     private Song refreshUrlIfNeeded(Song song, boolean forceRefresh) {
         log.info("Verificando si url está vigente: {}", song.getHlsMasterKey());
         if (!needsStreamingRefresh(song, forceRefresh)) {
             log.info("Url vigente para canción: {}", song.getHlsMasterKey());
             return song;
         }
-        log.warn("Url vencida, refrescando: {}", song.getHlsMasterKey());
-        String newUrl = getUrlValidWithRetry(song.getHlsMasterKey());
-        if (newUrl == null || newUrl.isBlank()) {
-            log.warn("No se pudo refrescar streamingUrl: {}", song.getHlsMasterKey());
-            song.setStreamingUrl(null);
-            return songRepository.save(song);
-        }
-        song.setStreamingUrl(newUrl);
-        song.setLastSyncedAt(Instant.now());
+        log.warn("Url vencida, limpiando para refresh por cliente: {}", song.getHlsMasterKey());
+        song.setStreamingUrl(null);
         return songRepository.save(song);
+
+        // TODO: Habilitar cuando tengamos IP dedicada — refresh server-side con NewPipe
+        // String newUrl = getUrlValidWithRetry(song.getHlsMasterKey());
+        // if (newUrl == null || newUrl.isBlank()) {
+        //     log.warn("No se pudo refrescar streamingUrl: {}", song.getHlsMasterKey());
+        //     song.setStreamingUrl(null);
+        //     return songRepository.save(song);
+        // }
+        // song.setStreamingUrl(newUrl);
+        // song.setLastSyncedAt(Instant.now());
+        // return songRepository.save(song);
     }
 
     private boolean needsStreamingRefresh(Song song, boolean forceRefresh) {
@@ -302,24 +311,31 @@ public class SongServiceImpl implements SongService {
                 .orElse(null);
     }
 
-    private String getUrlValid(String hlsMasterKey) {
-        String streamingUrlId = urlBuilder.build(hlsMasterKey, ContentType.SONG);
-        try {
-            StreamInfo info = StreamInfo.getInfo(streamingService.get(), streamingUrlId);
-            return extractBestStreamingUrl(info);
-        } catch (Exception e) {
-            log.warn("NewPipe falló al refrescar URL: {}", e.getMessage());
-            return null;
-        }
-    }
+    // =========================================================================
+    // TODO: Habilitar cuando tengamos IP dedicada — refresh server-side NewPipe
+    // YouTube bloquea IPs compartidas con LOGIN_REQUIRED.
+    // El cliente se encarga de refrescar la URL y enviarla vía PATCH.
+    // =========================================================================
 
-    private String getUrlValidWithRetry(String hlsMasterKey) {
-        String url = getUrlValid(hlsMasterKey);
-        if (url != null) return url;
-        String songUrl = urlBuilder.build(hlsMasterKey, ContentType.SONG);
-        return retryStreamingUrlExtraction(songUrl);
-    }
+    // private String getUrlValid(String hlsMasterKey) {
+    //     String streamingUrlId = urlBuilder.build(hlsMasterKey, ContentType.SONG);
+    //     try {
+    //         StreamInfo info = StreamInfo.getInfo(streamingService.get(), streamingUrlId);
+    //         return extractBestStreamingUrl(info);
+    //     } catch (Exception e) {
+    //         log.warn("NewPipe falló al refrescar URL: {}", e.getMessage());
+    //         return null;
+    //     }
+    // }
 
+    // private String getUrlValidWithRetry(String hlsMasterKey) {
+    //     String url = getUrlValid(hlsMasterKey);
+    //     if (url != null) return url;
+    //     String songUrl = urlBuilder.build(hlsMasterKey, ContentType.SONG);
+    //     return retryStreamingUrlExtraction(songUrl);
+    // }
+
+    // Activo: usado por createSongFromInfo (getOrCreateSong / getOrCreateSongFromAlbum)
     private String retryStreamingUrlExtraction(String songUrl) {
         for (int attempt = 2; attempt <= MAX_STREAMING_URL_RETRIES; attempt++) {
             log.warn("Reintentando streaming URL (intento {}/{}): {}", attempt, MAX_STREAMING_URL_RETRIES, songUrl);
