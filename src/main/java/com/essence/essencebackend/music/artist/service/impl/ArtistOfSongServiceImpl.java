@@ -6,6 +6,7 @@ import com.essence.essencebackend.music.artist.model.Artist;
 import com.essence.essencebackend.music.artist.repository.ArtistRepository;
 import com.essence.essencebackend.music.artist.service.ArtistOfSongService;
 import com.essence.essencebackend.music.shared.model.ContentType;
+import com.essence.essencebackend.music.shared.service.ImageResolver;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -27,6 +28,7 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
     private final UrlExtractor urlExtractor;
     private final SearchArtistService searchArtistService;
     private final ArtistMapperByInfo artistMapperByInfo;
+    private final ImageResolver imageResolver;
 
     @Override
     public Set<Artist> getOrCreateArtistBySong(String artistUrl, String artistsNames) {
@@ -66,10 +68,7 @@ public class ArtistOfSongServiceImpl implements ArtistOfSongService {
                         ChannelInfo artistInfo = ChannelInfo.getInfo(streamingService.get(), artistUrl);
                         log.info("Actualizando artista {} de Topic a Oficial", cleanName);
                         existing.setArtistUrl(artistaUrlId);
-                        existing.setImageKey(artistInfo.getAvatars().stream()
-                                .max(Comparator.comparing(org.schabi.newpipe.extractor.Image::getHeight))
-                                .map(org.schabi.newpipe.extractor.Image::getUrl)
-                                .orElse(existing.getImageKey()));
+                        existing.setImageKey(imageResolver.resolve(artistInfo.getAvatars()));
                         existing.setDescription(artistInfo.getDescription());
                         artistRepository.save(existing);
                     } catch (Exception e) {

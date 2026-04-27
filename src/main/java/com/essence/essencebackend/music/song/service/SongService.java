@@ -19,5 +19,5 @@ public interface SongService {
 
 //    del cliente a api
     SongResponseDTO syncSongFromClient(SongSyncRequestDTO request, String username);
-    SongResponseDTO refreshStreamingUrl(String videoId, String streamingUrl, String username);
+    void refreshStreamingUrl(String videoId, String streamingUrl);
 }

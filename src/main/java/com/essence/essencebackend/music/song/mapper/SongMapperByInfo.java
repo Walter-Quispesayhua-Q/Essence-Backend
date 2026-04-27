@@ -1,6 +1,7 @@
 package com.essence.essencebackend.music.song.mapper;
 
 import com.essence.essencebackend.music.shared.model.ContentType;
+import com.essence.essencebackend.music.shared.service.ImageResolver;
 import com.essence.essencebackend.music.shared.service.UrlExtractor;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
@@ -19,6 +20,7 @@ import java.time.Instant;
 public class SongMapperByInfo {
 
     private final UrlExtractor urlExtractor;
+    private final ImageResolver imageResolver;
 
     public Song mapToSong(StreamInfo info, String streamingUrl, String streamingUrlId) {
         Song song = new Song();
@@ -26,10 +28,7 @@ public class SongMapperByInfo {
         song.setDurationMs((int) (info.getDuration() * 1000));
         song.setHlsMasterKey(streamingUrlId);
         song.setStreamingUrl(streamingUrl);
-        song.setImageKey(info.getThumbnails().stream()
-                .max(java.util.Comparator.comparing(org.schabi.newpipe.extractor.Image::getHeight))
-                .map(org.schabi.newpipe.extractor.Image::getUrl)
-                .orElse(null));
+        song.setImageKey(imageResolver.resolve(info.getThumbnails()));
         song.setTotalStreams(info.getViewCount() >= 0 ? info.getViewCount() : 0L);
         song.setLastSyncedAt(Instant.now());
         song.setStatus(SongStatus.ACTIVE);
@@ -54,10 +53,7 @@ public class SongMapperByInfo {
                 item.getName(),
                 (int) (item.getDuration() * 1000),
                 urlExtractor.extractId(item.getUrl(), ContentType.SONG),
-                item.getThumbnails().stream()
-                        .max(java.util.Comparator.comparing(org.schabi.newpipe.extractor.Image::getHeight))
-                        .map(org.schabi.newpipe.extractor.Image::getUrl)
-                        .orElse(null),
+                imageResolver.resolve(item.getThumbnails()),
                 "MUSIC",
                 viewCount >= 0 ? viewCount : null,
                 item.getUploaderName(),

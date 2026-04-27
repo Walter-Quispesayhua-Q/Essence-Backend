@@ -48,14 +48,12 @@ public class SongController {
     }
 
     @PatchMapping("/{videoId}/streaming-url")
-    public ResponseEntity<SongResponseDTO> refreshStreamingUrl(
+    public ResponseEntity<Void> refreshStreamingUrl(
             @PathVariable String videoId,
-            @RequestParam String streamingUrl,
-            @AuthenticationPrincipal Jwt jwt
+            @RequestParam String streamingUrl
     ) {
-        return ResponseEntity.ok(
-                songService.refreshStreamingUrl(videoId, streamingUrl, jwt.getSubject())
-        );
+        songService.refreshStreamingUrl(videoId, streamingUrl);
+        return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{songId}/like")

@@ -168,23 +168,10 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public SongResponseDTO refreshStreamingUrl(String videoId, String streamingUrl, String username) {
-        log.info("Refresh streaming URL desde cliente: {}", videoId);
-
-        Song song = findExistingByUrlId(videoId)
-                .orElseThrow(() -> new SongNotFoundException(videoId));
-
-        song.setStreamingUrl(streamingUrl);
-        song.setLastSyncedAt(Instant.now());
-        song = songRepository.save(song);
-        log.info("StreamingUrl actualizada desde cliente: {}", videoId);
-
-        return buildResponseWithLike(song, username);
-
-        // TODO: Habilitar fallback server-side cuando tengamos IP dedicada
-        // if (streamingUrl == null || streamingUrl.isBlank()) {
-        //     song = refreshUrlIfNeeded(song, true);
-        // }
+    public void refreshStreamingUrl(String videoId, String streamingUrl) {
+        int updated = songRepository.updateStreamingUrl(videoId, streamingUrl, Instant.now());
+        if (updated == 0) throw new SongNotFoundException(videoId);
+        log.info("StreamingUrl actualizada: {}", videoId);
     }
 
     private Optional<Song> findExistingByUrlId(String urlId) {
