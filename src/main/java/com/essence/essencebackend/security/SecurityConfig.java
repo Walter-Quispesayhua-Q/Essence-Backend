@@ -33,7 +33,9 @@ public class SecurityConfig {
                                 "/api/v1/register/username",
                                 "/api/v1/login",
                                 "/api/v1/home",
-                                "/api/v1/search/**"
+                                "/api/v1/search/**",
+                                "/actuator/health/**",
+                                "/actuator/info"
                         ).permitAll()
                         .anyRequest().authenticated()
                 )

@@ -1,1 +1,0 @@
-ALTER TABLE songs ADD COLUMN album_searched_at TIMESTAMPTZ;

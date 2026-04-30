@@ -16,5 +16,6 @@ CREATE TABLE IF NOT EXISTS songs (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     last_synced_at TIMESTAMPTZ,
     streaming_url VARCHAR(4000),
-    sync_version INTEGER DEFAULT 1
+    sync_version INTEGER DEFAULT 1,
+    album_searched_at TIMESTAMPTZ
     );

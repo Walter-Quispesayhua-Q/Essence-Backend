@@ -81,15 +81,22 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
         }
     }
 
+    private static final int DEFAULT_HISTORY_LIMIT = 30;
+    private static final int MAX_HISTORY_LIMIT = 50;
+    private static final int MIN_HISTORY_LIMIT = 1;
+
     @Override
-    public List<SongResponseSimpleDTO> getSongOfHistory(String username) {
+    public List<SongResponseSimpleDTO> getSongOfHistory(String username, Integer limit) {
         log.info("Obteniendo el historial de canciones del usuario: {}", username);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(
                         () -> new UserNotFoundForUsernameException(username)
                 );
 
-        List<Long> ids = playHistoryRepository.findRecentUniqueIds(user.getId(), PageRequest.of(0, 30));
+        int effectiveLimit = Math.max(MIN_HISTORY_LIMIT,
+                Math.min(limit != null ? limit : DEFAULT_HISTORY_LIMIT, MAX_HISTORY_LIMIT));
+
+        List<Long> ids = playHistoryRepository.findRecentUniqueIds(user.getId(), PageRequest.of(0, effectiveLimit));
 
         if (ids.isEmpty()) {
             return List.of();

@@ -8,5 +8,5 @@ import java.util.List;
 public interface PlayHistoryService {
     void addSongToHistory(Long id, String username, PlayHistoryRequestDTO data);
 
-    List<SongResponseSimpleDTO> getSongOfHistory(String username);
+    List<SongResponseSimpleDTO> getSongOfHistory(String username, Integer limit);
 }

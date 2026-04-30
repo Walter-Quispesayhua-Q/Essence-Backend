@@ -13,7 +13,8 @@ public interface SongService {
         return getSongId(songUrlOrId, username, false);
     }
 
-    Song getOrCreateSong(String songUrlOrId);
+    // TODO: Habilitar cuando tengamos IP dedicada — extracción NewPipe server-side
+    // Song getOrCreateSong(String songUrlOrId);
 
     Song getOrCreateSongFromAlbum(StreamInfoItem item, Album album);
 

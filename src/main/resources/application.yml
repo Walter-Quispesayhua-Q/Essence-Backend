@@ -3,12 +3,22 @@ spring:
   application:
     name: EssenceBackend
 
+  profiles:
+    active: dev
+
   # configuracion Hibernate
   jpa:
     show-sql: false
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true
+        # arranque rapido: dialecto explicito y sin consultar metadata a la DB
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        boot:
+          allow_jdbc_metadata_access: false
+        temp:
+          use_jdbc_metadata_defaults: false
     hibernate:
       ddl-auto: validate
 
@@ -48,4 +58,16 @@ extractor:
       songs: trending_music
       albums: New releases
       artists: Trending
+
+# actuator: probes para container apps
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+      show-details: never
 

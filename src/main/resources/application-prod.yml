@@ -1,9 +1,15 @@
 spring:
-  # configuracion base de datos para produccion
+  # datasource de runtime: usuario con privilegio minimo (essence_app)
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+
+  # flyway corre las migraciones con usuario admin (puede CREATE/ALTER tables)
+  # separacion de privilegios: la app no puede modificar el esquema en runtime
+  flyway:
+    user: ${DB_ADMIN_USERNAME}
+    password: ${DB_ADMIN_PASSWORD}
 
   # configuracion Hibernate para produccion
   jpa:

@@ -30,9 +30,10 @@ public class PlayHistoryController {
 
     @GetMapping()
     public ResponseEntity<List<SongResponseSimpleDTO>> getSongsOfHistory(
+            @RequestParam(required = false) Integer limit,
             @AuthenticationPrincipal Jwt jwt
     ) {
         return ResponseEntity.status(HttpStatus.OK)
-                .body(playHistoryService.getSongOfHistory(jwt.getSubject()));
+                .body(playHistoryService.getSongOfHistory(jwt.getSubject(), limit));
     }
 }

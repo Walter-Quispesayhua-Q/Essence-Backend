@@ -84,33 +84,36 @@ public class SongServiceImpl implements SongService {
         // }
     }
 
-    @Override
-    public Song getOrCreateSong(String songUrlOrId) {
-        log.info("getOrCreateSong: {}", songUrlOrId);
-
-        String songUrlId = urlExtractor.resolverId(songUrlOrId, ContentType.SONG);
-        String songUrl = urlBuilder.resolveUrl(songUrlOrId, ContentType.SONG);
-
-        Optional<Song> existingSong = findExistingByUrlId(songUrlId);
-        if (existingSong.isPresent()) {
-            return refreshUrlIfNeeded(existingSong.get(), false);
-        }
-
-        try {
-            StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
-            ArtistAlbumResult result = resolveArtistAndAlbum(
-                    info.getName(), info.getUploaderUrl(), info.getUploaderName());
-            return createSongFromInfo(info, songUrlId, result.album(), result.artists());
-        } catch (DataIntegrityViolationException e) {
-            log.info("Canción ya creada concurrentemente: {}", songUrlId);
-            return findExistingByUrlId(songUrlId)
-                    .map(song -> refreshUrlIfNeeded(song, false))
-                    .orElseThrow(ExtractionServiceUnavailableException::new);
-        } catch (Exception e) {
-            log.error("NewPipe falló para getOrCreateSong: {}", e.getMessage());
-            throw new ExtractionServiceUnavailableException();
-        }
-    }
+    // TODO: Habilitar cuando tengamos IP dedicada — extracción NewPipe server-side
+    // YouTube bloquea IPs compartidas con LOGIN_REQUIRED.
+    // El cliente se encarga de hacer sync (POST /song/sync) antes de asociar a playlist.
+    // @Override
+    // public Song getOrCreateSong(String songUrlOrId) {
+    //     log.info("getOrCreateSong: {}", songUrlOrId);
+    //
+    //     String songUrlId = urlExtractor.resolverId(songUrlOrId, ContentType.SONG);
+    //     String songUrl = urlBuilder.resolveUrl(songUrlOrId, ContentType.SONG);
+    //
+    //     Optional<Song> existingSong = findExistingByUrlId(songUrlId);
+    //     if (existingSong.isPresent()) {
+    //         return refreshUrlIfNeeded(existingSong.get(), false);
+    //     }
+    //
+    //     try {
+    //         StreamInfo info = StreamInfo.getInfo(streamingService.get(), songUrl);
+    //         ArtistAlbumResult result = resolveArtistAndAlbum(
+    //                 info.getName(), info.getUploaderUrl(), info.getUploaderName());
+    //         return createSongFromInfo(info, songUrlId, result.album(), result.artists());
+    //     } catch (DataIntegrityViolationException e) {
+    //         log.info("Canción ya creada concurrentemente: {}", songUrlId);
+    //         return findExistingByUrlId(songUrlId)
+    //                 .map(song -> refreshUrlIfNeeded(song, false))
+    //                 .orElseThrow(ExtractionServiceUnavailableException::new);
+    //     } catch (Exception e) {
+    //         log.error("NewPipe falló para getOrCreateSong: {}", e.getMessage());
+    //         throw new ExtractionServiceUnavailableException();
+    //     }
+    // }
 
     @Override
     public Song getOrCreateSongFromAlbum(StreamInfoItem item, Album album) {
@@ -250,13 +253,6 @@ public class SongServiceImpl implements SongService {
         return songArtists;
     }
 
-
-
-
-    /**
-     * Verifica si la streaming URL está vigente.
-     * Si expiró, la limpia (null) para que el cliente la refresque vía PATCH.
-     */
     private Song refreshUrlIfNeeded(Song song, boolean forceRefresh) {
         log.info("Verificando si url está vigente: {}", song.getHlsMasterKey());
         if (!needsStreamingRefresh(song, forceRefresh)) {
@@ -298,11 +294,8 @@ public class SongServiceImpl implements SongService {
                 .orElse(null);
     }
 
-    // =========================================================================
     // TODO: Habilitar cuando tengamos IP dedicada — refresh server-side NewPipe
-    // YouTube bloquea IPs compartidas con LOGIN_REQUIRED.
     // El cliente se encarga de refrescar la URL y enviarla vía PATCH.
-    // =========================================================================
 
     // private String getUrlValid(String hlsMasterKey) {
     //     String streamingUrlId = urlBuilder.build(hlsMasterKey, ContentType.SONG);

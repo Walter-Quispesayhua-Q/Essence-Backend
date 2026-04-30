@@ -1,12 +1,52 @@
+# --- Build artifacts ---
 target/
+*.jar
+*.war
+*.class
+
+# --- Maven wrapper (no se usa: el Dockerfile invoca la imagen oficial de Maven) ---
+mvnw
+mvnw.cmd
+.mvn/
+
+# --- Control de versiones ---
 .git/
 .gitignore
+.gitattributes
+
+# --- IDE ---
 .idea/
 .vscode/
 *.iml
+*.iws
+*.ipr
+
+# --- Logs y temporales ---
 *.log
+*.bak
+*.swp
+*.tmp
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- Secretos / entorno (NUNCA deben llegar a la imagen) ---
 .env
 .env.*
+
+# --- Docker / Compose (no necesarios dentro del contenedor) ---
 compose*.yml
 compose*.yaml
-README.md
+Dockerfile
+Dockerfile.*
+.dockerignore
+
+# --- CI/CD ---
+.github/
+
+# --- Documentacion (no afecta runtime) ---
+*.md
+docs/
+LICENSE
+NOTICE

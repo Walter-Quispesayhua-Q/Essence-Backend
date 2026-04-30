@@ -1,5 +1,24 @@
 services:
-  # backend en perfil dev conectado a postgres del host
+  # postgres para desarrollo local (misma version que Azure prod)
+  postgres:
+    image: postgres:18-alpine
+    container_name: essence-postgres-dev
+    environment:
+      POSTGRES_DB: essence_dev
+      POSTGRES_USER: ${DB_USERNAME:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - essence_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-postgres} -d essence_dev"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+  # backend en perfil dev conectado al postgres del compose
   backend:
     build:
       context: .
@@ -7,9 +26,17 @@ services:
     container_name: essence-backend-dev
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      DB_URL: jdbc:postgresql://host.docker.internal:5432/essence_data_base
+      DB_URL: jdbc:postgresql://postgres:5432/essence_dev
       DB_USERNAME: ${DB_USERNAME:-postgres}
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET_B64: ${JWT_SECRET_B64}
     ports:
       - "8099:8099"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  essence_pg_data:
+    name: essence_pg_data

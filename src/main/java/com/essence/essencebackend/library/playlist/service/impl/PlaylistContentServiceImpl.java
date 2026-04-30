@@ -3,7 +3,6 @@ package com.essence.essencebackend.library.playlist.service.impl;
 import com.essence.essencebackend.autentication.shared.model.User;
 import com.essence.essencebackend.autentication.shared.repository.UserRepository;
 import com.essence.essencebackend.library.playlist.exception.PlaylistNotFoundException;
-import com.essence.essencebackend.library.playlist.exception.SongAlreadyInPlaylistException;
 import com.essence.essencebackend.library.playlist.exception.SongNotInPlaylistException;
 import com.essence.essencebackend.autentication.shared.exception.UserNotFoundForUsernameException;
 import com.essence.essencebackend.library.playlist.model.Playlist;
@@ -13,9 +12,10 @@ import com.essence.essencebackend.library.playlist.repository.PlaylistRepository
 import com.essence.essencebackend.library.playlist.repository.PlaylistSongRepository;
 import com.essence.essencebackend.library.playlist.service.PlaylistContentService;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
+import com.essence.essencebackend.music.song.exception.SongNotFoundException;
 import com.essence.essencebackend.music.song.mapper.SongMapper;
 import com.essence.essencebackend.music.song.model.Song;
-import com.essence.essencebackend.music.song.service.SongService;
+import com.essence.essencebackend.music.song.repository.SongRepository;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +33,7 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
     private final PlaylistRepository playlistRepository;
     private final UserRepository userRepository;
     private final SongMapper songMapper;
-    private final SongService songService;
+    private final SongRepository songRepository;
 
     @Override
     @Transactional
@@ -48,12 +48,14 @@ public class PlaylistContentServiceImpl implements PlaylistContentService {
                 () -> new PlaylistNotFoundException(playlistId)
         );
 
-        Song song = songService.getOrCreateSong(songKey);
+        Song song = songRepository.findByHlsMasterKey(songKey).orElseThrow(
+                () -> new SongNotFoundException(songKey)
+        );
 
         PlaylistSongId playlistSongId = new PlaylistSongId(playlistId, song.getId());
 
         if (playlistSongRepository.existsById(playlistSongId)) {
-            throw new SongAlreadyInPlaylistException(song.getId(), playlistId);
+            return true;
         }
 
         PlaylistSong playlistSong = new PlaylistSong();
