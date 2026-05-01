@@ -7,6 +7,7 @@ import com.essence.essencebackend.music.album.dto.AlbumResponseSimpleDTO;
 import com.essence.essencebackend.music.artist.dto.ArtistResponseSimpleDTO;
 import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,7 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
+@Slf4j
 @RequiredArgsConstructor
 @RestController
 @RequestMapping("/api/v1/home")
@@ -24,40 +28,28 @@ public class HomeController {
 
     @GetMapping
     public ResponseEntity<HomeResponseDTO> getHome() {
+        CompletableFuture<Result<SongResponseSimpleDTO>>   songsF   =
+                runAsync(metadataExtractorTrendingService::getTrendingSongs, "songs");
+        CompletableFuture<Result<AlbumResponseSimpleDTO>>  albumsF  =
+                runAsync(metadataExtractorTrendingService::getTrendingAlbums, "albums");
+        CompletableFuture<Result<ArtistResponseSimpleDTO>> artistsF =
+                runAsync(metadataExtractorTrendingService::getTrendingArtists, "artists");
 
-        List<SongResponseSimpleDTO>   songs   = List.of();
-        List<AlbumResponseSimpleDTO>  albums  = List.of();
-        List<ArtistResponseSimpleDTO> artists = List.of();
+        CompletableFuture.allOf(songsF, albumsF, artistsF).join();
 
-        boolean songsOk = true, albumsOk = true, artistsOk = true;
+        Result<SongResponseSimpleDTO>   songs   = songsF.join();
+        Result<AlbumResponseSimpleDTO>  albums  = albumsF.join();
+        Result<ArtistResponseSimpleDTO> artists = artistsF.join();
 
-        try {
-            songs = metadataExtractorTrendingService.getTrendingSongs();
-        } catch (Exception e) {
-            songsOk = false;
-        }
-
-        try {
-            albums = metadataExtractorTrendingService.getTrendingAlbums();
-        } catch (Exception e) {
-            albumsOk = false;
-        }
-
-        try {
-            artists = metadataExtractorTrendingService.getTrendingArtists();
-        } catch (Exception e) {
-            artistsOk = false;
-        }
-
-        boolean allFailed = !songsOk && !albumsOk && !artistsOk;
+        boolean allFailed = !songs.ok && !albums.ok && !artists.ok;
 
         String errorMessage = allFailed
                 ? "No se pudo cargar el contenido principal. Intente nuevamente."
                 : null;
 
         HomeResponseDTO response = new HomeResponseDTO(
-                songs, albums, artists,
-                new HomeStatusDTO(songsOk, albumsOk, artistsOk, errorMessage)
+                songs.data, albums.data, artists.data,
+                new HomeStatusDTO(songs.ok, albums.ok, artists.ok, errorMessage)
         );
 
         if (allFailed) {
@@ -66,4 +58,17 @@ public class HomeController {
 
         return ResponseEntity.ok(response);
     }
+
+    private <T> CompletableFuture<Result<T>> runAsync(Supplier<List<T>> supplier, String name) {
+        return CompletableFuture.supplyAsync(supplier)
+                .handle((data, ex) -> {
+                    if (ex != null) {
+                        log.warn("Trending {} fallo: {}", name, ex.getMessage());
+                        return new Result<T>(List.of(), false);
+                    }
+                    return new Result<>(data, true);
+                });
+    }
+
+    private record Result<T>(List<T> data, boolean ok) {}
 }

@@ -21,6 +21,10 @@ comportamiento esperado vs. observado, y entorno (versión Java, OS, etc.).
 - [ ] **Tests unitarios** — Cobertura mínima del 70% en servicios y controladores críticos
 - [ ] **Tests de integración** — Probar flujos end-to-end con `@SpringBootTest` y Testcontainers
 - [ ] **Corregir textos y labels de tabs** — Revisión y traducción consistente de los textos visibles
+- [ ] **Retry de artistas secundarios faltantes** — Cuando NewPipe falla resolviendo un artista
+  feat, la canción se guarda solo con el principal y nunca se reintenta. Implementar
+  `tryAssignSecondaryArtistsIfMissing` siguiendo el patrón ejemplar de
+  `tryAssignAlbumIfMissing` (columna `artists_searched_at` + cooldown 7 días)
 
 ### 🟢 Baja prioridad
 

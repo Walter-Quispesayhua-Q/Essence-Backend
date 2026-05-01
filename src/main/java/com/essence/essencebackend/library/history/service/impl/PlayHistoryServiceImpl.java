@@ -86,6 +86,7 @@ public class PlayHistoryServiceImpl implements PlayHistoryService {
     private static final int MIN_HISTORY_LIMIT = 1;
 
     @Override
+    @Transactional(readOnly = true)
     public List<SongResponseSimpleDTO> getSongOfHistory(String username, Integer limit) {
         log.info("Obteniendo el historial de canciones del usuario: {}", username);
         User user = userRepository.findByUsername(username)

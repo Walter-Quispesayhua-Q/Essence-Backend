@@ -9,7 +9,8 @@ spring:
   # configuracion Hibernate
   jpa:
     show-sql: false
-    open-in-view: false
+    # open-in-view=true: la sesion Hibernate vive durante toda la request HTTP.
+    open-in-view: true
     properties:
       hibernate:
         format_sql: true
@@ -51,13 +52,15 @@ app:
     ratelimit:
       trust-forwarded-headers: false
 
-# kiosks de trending para extractor
+# queries de trending para extractor (usan filtros music_* de YouTube Music)
 extractor:
   youtube:
-    kiosk:
-      songs: trending_music
-      albums: New releases
-      artists: Trending
+    trending:
+      songs-query: "top global songs 2026"
+      albums-query: "top global albums 2026"
+      artists-query: "top global artists 2026"
+      limit: 15
+      fallback-query: "popular songs 2026"
 
 # actuator: probes para container apps
 management:
