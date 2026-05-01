@@ -1,0 +1,35 @@
+name: Keep warm (ping health endpoint)
+
+on:
+  schedule:
+    # cada 10 minutos. GitHub Actions no permite menos
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /actuator/health
+        env:
+          HEALTH_URL: ${{ secrets.HEALTH_URL }}
+        run: |
+          if [ -z "$HEALTH_URL" ]; then
+            echo "HEALTH_URL secret no configurado"
+            exit 1
+          fi
+
+          echo "Pinging $HEALTH_URL"
+          for i in 1 2 3; do
+            code=$(curl -s -o /tmp/body -w "%{http_code}" --max-time 90 "$HEALTH_URL" || echo "000")
+            echo "Intento $i: HTTP $code"
+            if [ "$code" = "200" ]; then
+              cat /tmp/body
+              exit 0
+            fi
+            sleep 10
+          done
+
+          echo "Ping fallo despues de 3 intentos"
+          cat /tmp/body || true
+          exit 1
