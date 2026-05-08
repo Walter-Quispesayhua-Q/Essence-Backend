@@ -61,4 +61,11 @@ public class ArtistMapperByInfo {
     public boolean isTopic(String name) {
         return name != null && name.toLowerCase().endsWith("- topic");
     }
-}
+
+    public int channelPriority(ChannelInfoItem item) {
+        int priority = 0;
+        if (isTopic(item.getName())) priority += 2;
+        if (!item.isVerified()) priority += 1;
+        return priority;
+    }
+}

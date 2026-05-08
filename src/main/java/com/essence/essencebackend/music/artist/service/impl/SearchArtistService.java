@@ -1,5 +1,6 @@
 package com.essence.essencebackend.music.artist.service.impl;
 
+import com.essence.essencebackend.music.artist.mapper.ArtistMapperByInfo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.schabi.newpipe.extractor.StreamingService;
@@ -7,6 +8,7 @@ import org.schabi.newpipe.extractor.channel.ChannelInfoItem;
 import org.schabi.newpipe.extractor.search.SearchInfo;
 import org.springframework.stereotype.Service;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,8 +18,9 @@ import java.util.Optional;
 public class SearchArtistService {
 
     private final Optional<StreamingService> streamingService;
+    private final ArtistMapperByInfo artistMapperByInfo;
 
-    public  ChannelInfoItem searchArtistsItems(String artistName) {
+    public ChannelInfoItem searchArtistsItems(String artistName) {
         log.info("Buscando artista por nombre: {}", artistName);
 
         try {
@@ -32,7 +35,7 @@ public class SearchArtistService {
             return search.getRelatedItems().stream()
                     .filter(ChannelInfoItem.class::isInstance)
                     .map(ChannelInfoItem.class::cast)
-                    .findFirst()
+                    .min(Comparator.comparingInt(artistMapperByInfo::channelPriority))
                     .orElse(null);
         } catch (Exception e) {
             log.error("Error buscando artista: {}", e.getMessage(), e);
@@ -40,7 +43,5 @@ public class SearchArtistService {
 
         return null;
     }
-
-
-
 }
+

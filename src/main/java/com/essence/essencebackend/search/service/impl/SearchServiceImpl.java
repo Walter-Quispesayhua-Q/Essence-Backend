@@ -22,9 +22,8 @@ import org.schabi.newpipe.extractor.search.SearchExtractor;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Slf4j
@@ -149,11 +148,19 @@ public class SearchServiceImpl implements SearchService {
     }
 
     private List<ArtistResponseSimpleDTO> extractArtists(List<InfoItem> items) {
-        return items.stream()
+        List<ChannelInfoItem> channels = items.stream()
                 .filter(ChannelInfoItem.class::isInstance)
                 .map(ChannelInfoItem.class::cast)
-                .map(artistMapperByInfo::mapFromItem)
+                .sorted(Comparator.comparingInt(artistMapperByInfo::channelPriority))
                 .toList();
+
+        Map<String, ArtistResponseSimpleDTO> seen = new LinkedHashMap<>();
+        for (ChannelInfoItem ch : channels) {
+            ArtistResponseSimpleDTO dto = artistMapperByInfo.mapFromItem(ch);
+            String key = dto.nameArtist().toLowerCase();
+            seen.putIfAbsent(key, dto);
+        }
+        return new ArrayList<>(seen.values());
     }
 
     private String resolveType(String query, String type) {
