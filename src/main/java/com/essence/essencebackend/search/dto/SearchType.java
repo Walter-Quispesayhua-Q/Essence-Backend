@@ -9,16 +9,27 @@ import java.util.stream.Collectors;
 
 @Getter
 public enum SearchType {
-    SONG("Canciones", "song", "cancion", "canción", "track", "musica", "música"),
-    ALBUM("Álbumes", "album", "álbum", "playlist", "disco"),
-    ARTIST("Artistas", "artist", "artista", "channel", "canal");
+    SONG("Canciones", "most listened to songs", "song", "cancion", "canción", "track", "musica", "música"),
+    ALBUM("Álbumes", "most listened to albums", "album", "álbum", "playlist", "disco"),
+    ARTIST("Artistas", "most listened to artists", "artist", "artista", "channel", "canal");
 
     private final String label;
+    private final String defaultQuery;
     private final List<String> keywords;
 
-    SearchType(String label, String... keywords) {
+    SearchType(String label, String defaultQuery, String... keywords) {
         this.label = label;
+        this.defaultQuery = defaultQuery;
         this.keywords = List.of(keywords);
+    }
+
+    public static String defaultQueryForFilter(String filter) {
+        for (SearchType type : values()) {
+            if (type.toNewPipeFilter().equals(filter)) {
+                return type.defaultQuery;
+            }
+        }
+        return null;
     }
 
     public static String detectFromQuery(String query) {

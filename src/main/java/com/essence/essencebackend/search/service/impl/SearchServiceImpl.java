@@ -55,7 +55,12 @@ public class SearchServiceImpl implements SearchService {
         String queryClean = SearchType.cleanQuery(query);
 
         if (queryClean.isBlank()) {
-            throw new IllegalArgumentException("La busqueda no puede estar vacia o contener solo palabras reservadas.");
+            if (typeSearch != null) {
+                queryClean = SearchType.defaultQueryForFilter(typeSearch);
+            }
+            if (queryClean == null || queryClean.isBlank()) {
+                throw new IllegalArgumentException("La busqueda no puede estar vacia o contener solo palabras reservadas.");
+            }
         }
 
         try {
