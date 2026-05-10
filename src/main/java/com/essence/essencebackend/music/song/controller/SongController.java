@@ -12,6 +12,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+
 @RestController
 @RequestMapping("/api/v1/song")
 public class SongController {
@@ -50,9 +52,10 @@ public class SongController {
     @PatchMapping("/{videoId}/streaming-url")
     public ResponseEntity<Void> refreshStreamingUrl(
             @PathVariable String videoId,
-            @RequestParam String streamingUrl
+            @RequestParam String streamingUrl,
+            @RequestParam(required = false) Instant expiresAt
     ) {
-        songService.refreshStreamingUrl(videoId, streamingUrl);
+        songService.refreshStreamingUrl(videoId, streamingUrl, expiresAt);
         return ResponseEntity.noContent().build();
     }
 

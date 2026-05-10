@@ -14,6 +14,7 @@ import org.schabi.newpipe.extractor.stream.StreamInfo;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 
 @RequiredArgsConstructor
@@ -73,7 +74,6 @@ public class SongMapperByInfo {
                 .orElse(null);
     }
 
-    /** Mapea desde datos del cliente */
     public Song mapFromClientSync(SongSyncRequestDTO request) {
         Song song = new Song();
         song.setTitle(request.title());
@@ -83,7 +83,13 @@ public class SongMapperByInfo {
         song.setImageKey(request.thumbnailUrl());
         song.setTotalStreams(request.viewCount() != null ? request.viewCount() : 0L);
         song.setReleaseDate(request.releaseDate());
-        song.setLastSyncedAt(Instant.now());
+        Instant syncedAt = Instant.now();
+        song.setLastSyncedAt(syncedAt);
+        song.setStreamingUrlExpiresAt(
+                request.streamingUrlExpiresAt() != null
+                        ? request.streamingUrlExpiresAt()
+                        : syncedAt.plus(Duration.ofMinutes(300))
+        );
         song.setStatus(SongStatus.ACTIVE);
         return song;
     }

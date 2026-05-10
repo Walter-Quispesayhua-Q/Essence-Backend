@@ -30,8 +30,9 @@ public interface SongRepository extends JpaRepository<Song, Long> {
 
     @Modifying
     @Transactional
-    @Query("UPDATE Song s SET s.streamingUrl = :streamingUrl, s.lastSyncedAt = :syncedAt WHERE s.hlsMasterKey = :videoId")
+    @Query("UPDATE Song s SET s.streamingUrl = :streamingUrl, s.lastSyncedAt = :syncedAt, s.streamingUrlExpiresAt = :expiresAt WHERE s.hlsMasterKey = :videoId")
     int updateStreamingUrl(@Param("videoId") String videoId,
                            @Param("streamingUrl") String streamingUrl,
-                           @Param("syncedAt") Instant syncedAt);
+                           @Param("syncedAt") Instant syncedAt,
+                           @Param("expiresAt") Instant expiresAt);
 }

@@ -3,6 +3,7 @@ package com.essence.essencebackend.music.song.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 public record SongSyncRequestDTO(
@@ -24,6 +25,7 @@ public record SongSyncRequestDTO(
 
         String thumbnailUrl,
         String streamingUrl,
+        Instant streamingUrlExpiresAt,
         Long viewCount,
         LocalDate releaseDate
 ) {}

@@ -171,8 +171,12 @@ public class SongServiceImpl implements SongService {
     }
 
     @Override
-    public void refreshStreamingUrl(String videoId, String streamingUrl) {
-        int updated = songRepository.updateStreamingUrl(videoId, streamingUrl, Instant.now());
+    public void refreshStreamingUrl(String videoId, String streamingUrl, Instant expiresAt) {
+        Instant syncedAt = Instant.now();
+        Instant resolvedExpiresAt = expiresAt != null
+                ? expiresAt
+                : syncedAt.plus(Duration.ofMinutes(STREAMING_URL_VALIDITY_MINUTES));
+        int updated = songRepository.updateStreamingUrl(videoId, streamingUrl, syncedAt, resolvedExpiresAt);
         if (updated == 0) throw new SongNotFoundException(videoId);
         log.info("StreamingUrl actualizada: {}", videoId);
     }
@@ -278,12 +282,15 @@ public class SongServiceImpl implements SongService {
     private boolean needsStreamingRefresh(Song song, boolean forceRefresh) {
         if (forceRefresh) return true;
         if (song.getStreamingUrl() == null || song.getStreamingUrl().isBlank()) return true;
-        return !isUrlValid(song.getLastSyncedAt());
+        return !isUrlValid(song);
     }
 
-    private boolean isUrlValid(Instant lastSynced) {
-        if (lastSynced == null) return false;
-        long minutesAgo = Duration.between(lastSynced, Instant.now()).toMinutes();
+    private boolean isUrlValid(Song song) {
+        if (song.getStreamingUrlExpiresAt() != null) {
+            return song.getStreamingUrlExpiresAt().isAfter(Instant.now());
+        }
+        if (song.getLastSyncedAt() == null) return false;
+        long minutesAgo = Duration.between(song.getLastSyncedAt(), Instant.now()).toMinutes();
         return minutesAgo < STREAMING_URL_VALIDITY_MINUTES;
     }
 

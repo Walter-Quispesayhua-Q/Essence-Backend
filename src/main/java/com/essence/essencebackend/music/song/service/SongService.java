@@ -6,6 +6,8 @@ import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
 import com.essence.essencebackend.music.song.model.Song;
 import org.schabi.newpipe.extractor.stream.StreamInfoItem;
 
+import java.time.Instant;
+
 public interface SongService {
     SongResponseDTO getSongId(String songUrlOrId, String username, boolean forceRefresh);
 
@@ -20,5 +22,5 @@ public interface SongService {
 
 //    del cliente a api
     SongResponseDTO syncSongFromClient(SongSyncRequestDTO request, String username);
-    void refreshStreamingUrl(String videoId, String streamingUrl);
+    void refreshStreamingUrl(String videoId, String streamingUrl, Instant expiresAt);
 }

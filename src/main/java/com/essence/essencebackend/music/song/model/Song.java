@@ -70,6 +70,9 @@ public class Song {
     @Column(name = "last_synced_at")
     private Instant lastSyncedAt;
 
+    @Column(name = "streaming_url_expires_at")
+    private Instant streamingUrlExpiresAt;
+
     @Column(name = "sync_version")
     private Integer syncVersion = 1;
 

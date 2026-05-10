@@ -28,13 +28,15 @@ public interface SongMapper {
     @Mapping(target = "artists", expression = "java(mapArtists(song))")
     @Mapping(source = "song.streamingUrl", target = "streamingUrl")
     @Mapping(source = "isLiked", target = "isLiked")
-    @Mapping(target = "streamingUrlExpiresAt", expression = "java(calculateUrlExpiration(song))")
+    @Mapping(target = "streamingUrlExpiresAt", expression = "java(resolveUrlExpiration(song))")
     SongResponseDTO toFullDto(Song song, boolean isLiked);
 
     List<SongResponseSimpleDTO> toListDto(List<Song> toListEntity);
 
-    default Instant calculateUrlExpiration(Song song) {
-        if (song == null || song.getLastSyncedAt() == null) return null;
+    default Instant resolveUrlExpiration(Song song) {
+        if (song == null) return null;
+        if (song.getStreamingUrlExpiresAt() != null) return song.getStreamingUrlExpiresAt();
+        if (song.getLastSyncedAt() == null) return null;
         return song.getLastSyncedAt().plus(Duration.ofMinutes(300));
     }
 
