@@ -7,6 +7,7 @@ import com.essence.essencebackend.music.song.dto.SongResponseSimpleDTO;
 import com.essence.essencebackend.music.song.dto.SongSyncRequestDTO;
 import com.essence.essencebackend.music.song.model.Song;
 import com.essence.essencebackend.music.song.model.SongStatus;
+import com.essence.essencebackend.music.song.repository.SongRepository;
 import lombok.RequiredArgsConstructor;
 import org.schabi.newpipe.extractor.localization.DateWrapper;
 import org.schabi.newpipe.extractor.stream.StreamInfo;
@@ -21,6 +22,7 @@ public class SongMapperByInfo {
 
     private final UrlExtractor urlExtractor;
     private final ImageResolver imageResolver;
+    private final SongRepository songRepository;
 
     public Song mapToSong(StreamInfo info, String streamingUrl, String streamingUrlId) {
         Song song = new Song();
@@ -48,11 +50,14 @@ public class SongMapperByInfo {
                 ? uploadDate.offsetDateTime().toLocalDate()
                 : null;
 
+        String hlsMasterKey = urlExtractor.extractId(item.getUrl(), ContentType.SONG);
+        Long existingId = resolveExistingId(hlsMasterKey);
+
         return new SongResponseSimpleDTO(
-                null,
+                existingId,
                 item.getName(),
                 (int) (item.getDuration() * 1000),
-                urlExtractor.extractId(item.getUrl(), ContentType.SONG),
+                hlsMasterKey,
                 imageResolver.resolve(item.getThumbnails()),
                 "MUSIC",
                 viewCount >= 0 ? viewCount : null,
@@ -60,6 +65,12 @@ public class SongMapperByInfo {
                 null,
                 releaseDate
         );
+    }
+
+    private Long resolveExistingId(String hlsMasterKey) {
+        return songRepository.findByHlsMasterKey(hlsMasterKey)
+                .map(Song::getId)
+                .orElse(null);
     }
 
     /** Mapea desde datos del cliente */
